@@ -1,0 +1,18 @@
+# Documentation-only publication allowlist. Humans approve scope changes.
+# This guards accidental staging; it cannot remove already tracked history.
+/*
+!/.gitignore
+!/README.md
+!/AGENTS.md
+!/CLAUDE.md
+!/COLLABORATION.md
+!/PROJECT_STATUS.md
+!/TIMELINE.md
+!/LITERATURE.md
+!/.github/
+/.github/*
+!/.github/CODEOWNERS
+!/.github/pull_request_template.md
+!/proposal/
+/proposal/*
+!/proposal/Proposal_xiaodi_guanlin.pdf
