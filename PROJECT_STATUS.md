@@ -58,7 +58,7 @@ or cost comparisons that omit history storage.
 
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
-| Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Publishing approved; final verification and settings in progress |
+| Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
 | Test-problem and success-target agreement | Unassigned | To be claimed | Next scientific planning task |
 | Literature/formulation notes | Unassigned | To be claimed | Read needed equations before implementation |
 
@@ -70,6 +70,9 @@ the timeline. Local claims are not shared until pushed.
 
 - Repository: `markzhou694/capstone-computational-electromagnetic` (public).
 - Publication uses a separate documentation-only clone and fresh Git history.
+  The initial upload was verified against its exact 11-file allowlist; no
+  source code, executable tooling, result files, or earlier code commits
+  were included. Future additions still require publication-scope approval.
 - Only `markzhou694` was listed as a collaborator at the latest check.
 - Guanlin's verified account is `Lim-miL-Lim`. The write-access invitation
   has been sent with Xiaodi's explicit approval; Guanlin must accept it.
@@ -78,7 +81,7 @@ the timeline. Local claims are not shared until pushed.
   code-owner review, fresh approval after changes, approval of the latest
   push by someone other than the pusher, resolved conversations, no force
   pushes/deletion, and enforcement for admins. No CI checks are required.
-  Protection is applied after the initial documentation upload; inspect
+  Activation is a GitHub administration setting; inspect
   [live branch settings](https://github.com/markzhou694/capstone-computational-electromagnetic/settings/branches)
   for the active configuration rather than assuming files activate it.
 - Human-owned files become read-only for AI after this approved setup.
