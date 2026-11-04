@@ -52,3 +52,14 @@ See COLLABORATION.md for the recording and correction procedure.
 - Verification: All relative Markdown links resolve. The previous timeline is retained byte for byte as a prefix; the literature file and proposal PDF are unchanged. Ignore-rule checks allow future Python, MATLAB, tests, scripts, and notebooks under src, while rejecting code at root/docs and ignoring credentials, caches, and generated results. No implementation files were introduced. Both humans remain owners of the moved canonical rules. git diff HEAD --check passed.
 - Limitations: This is an organization/documentation change; src currently contains explanatory Markdown only, so no numerical tests were needed. Main requires the other human's approving review. Guanlin's collaborator permission was still read at the start of this task; write access depends on accepting the invitation.
 - Next: Publish this task branch and open a PR; the other human reviews and approves it before merge. Future coding tasks place source files under src and AI records changes in docs/TIMELINE.md.
+
+## 2026-11-04T23:49:08+00:00 | organize-docs-src-pr-20261104
+
+- Changed by: Codex; PR handoff metadata.
+- Recorded by: Codex, working for Xiaodi Zhou.
+- Context: xiaodi/organize-docs-src at 4445e0602da687542b237874a628525c2a51857b; PR https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1.
+- Files: `docs/PROJECT_STATUS.md`, `docs/TIMELINE.md`.
+- Change and reason: Linked the published reorganization PR from the shared task status so both AI accounts and humans can find the work awaiting review.
+- Verification: Task branch push succeeded; GitHub returned PR #1 open and unmerged with the expected base and head. Earlier timeline content remains unchanged; only status/link and this appended record change in this handoff.
+- Limitations: Protected main still requires the other human's approval; no merge or protection bypass has been performed.
+- Next: Guanlin reviews PR #1 and approves it before merge. Continue to store newly created source code under src/ after this organization is adopted.

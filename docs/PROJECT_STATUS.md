@@ -61,7 +61,7 @@ or cost comparisons that omit history storage.
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
 | Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
-| Group documents and establish source directory | Xiaodi; Codex assisting | `xiaodi/organize-docs-src`; root entry points, `docs/`, `src/README.md`, review configuration | Structure verified; submit PR for the other human's required review |
+| Group documents and establish source directory | Xiaodi; Codex assisting | `xiaodi/organize-docs-src`; root entry points, `docs/`, `src/README.md`, review configuration | Structure verified; [PR #1](https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1) awaits the other human's required review |
 | Test-problem and success-target agreement | Unassigned | To be claimed | Next scientific planning task |
 | Literature/formulation notes | Unassigned | To be claimed | Read needed equations before implementation |
 
