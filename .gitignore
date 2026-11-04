@@ -1,18 +1,40 @@
-# Documentation-only publication allowlist. Humans approve scope changes.
+# Shared documents and future source code. Humans approve scope changes.
 # This guards accidental staging; it cannot remove already tracked history.
 /*
 !/.gitignore
 !/README.md
 !/AGENTS.md
 !/CLAUDE.md
-!/COLLABORATION.md
-!/PROJECT_STATUS.md
-!/TIMELINE.md
-!/LITERATURE.md
 !/.github/
 /.github/*
 !/.github/CODEOWNERS
 !/.github/pull_request_template.md
-!/proposal/
-/proposal/*
-!/proposal/Proposal_xiaodi_guanlin.pdf
+!/docs/
+/docs/*
+!/docs/PROJECT_RULES.md
+!/docs/COLLABORATION.md
+!/docs/PROJECT_STATUS.md
+!/docs/TIMELINE.md
+!/docs/LITERATURE.md
+!/docs/proposal/
+/docs/proposal/*
+!/docs/proposal/Proposal_xiaodi_guanlin.pdf
+!/src/
+
+# Local environments, credentials, caches, and generated output.
+.env
+.env.*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.numba_cache/
+.mplconfig/
+.DS_Store
+*.asv
+scratch/
+results/
+outputs/

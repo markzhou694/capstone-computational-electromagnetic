@@ -14,6 +14,6 @@ Next step:
 - [ ] AI reconciled prior human/AI changes and logged this change set.
 - [ ] Every changed path is covered; prior timeline entries are retained.
 - [ ] Project status reflects the actual scope, owner, and progress.
-- [ ] No code, scripts, workflows, outputs, or code-bearing history is included.
-- [ ] Human-owned rules were not edited by AI after initial setup.
+- [ ] Any authorized new code is under `src/`; no unapproved local prototype, outputs, or old code history is imported.
+- [ ] Any governance change was explicitly requested by a human and receives the other human's review.
 - [ ] The other human reviews before merging.

@@ -8,29 +8,55 @@ This repository is our shared project notebook and collaboration space.
 We use separate personal AI accounts, so the files here carry the project
 context between sessions. GitHub does not synchronize our private chats.
 
-**Current scope: documentation only.** The proposal and collaboration files
-are included. Solver code, scripts, notebooks, tests, experimental outputs,
-and the earlier local code history are not published. Adding code later
-requires a separate explicit decision from the humans.
+Shared documents are grouped in **`docs/`**. **`src/` is the home for all
+new project code**, including Python and MATLAB files. It currently contains
+an explanatory README only; no existing local solver code, results, or old
+code history have been imported. Code implementation and publication still
+follow the humans' task instructions.
+
+## Repository layout
+
+```text
+README.md                 Start here
+AGENTS.md                 AI entry point pointing to the shared rules
+CLAUDE.md                 Claude entry point pointing to the same rules
+docs/
+  PROJECT_RULES.md         Human-maintained rules
+  COLLABORATION.md         Session and review procedure
+  PROJECT_STATUS.md        Current progress, owners, and next steps
+  TIMELINE.md              AI-maintained change history
+  LITERATURE.md            Reference map
+  proposal/
+    Proposal_xiaodi_guanlin.pdf
+src/
+  README.md                Code placement instructions; no solver yet
+.github/                   GitHub review ownership and PR template
+```
+
+The README and small AI entry points stay at the root for discoverability.
+The full collaboration documents live together in `docs/`. GitHub's own
+configuration stays in its conventional `.github/` folder.
 
 ## What each file does
 
 | File | What to use it for | Who maintains it |
 | --- | --- | --- |
-| [AGENTS.md](AGENTS.md) | The shared rules every AI must read and follow | Humans after this approved setup; AI reads only |
-| [TIMELINE.md](TIMELINE.md) | What changed, who changed it, why, and what was checked | **AI**, including recording observed human changes |
-| [PROJECT_STATUS.md](PROJECT_STATUS.md) | Current scope, task owners, progress, blockers, and next steps | AI updates from verified work and human decisions |
-| [COLLABORATION.md](COLLABORATION.md) | The detailed start/work/handoff procedure for both accounts | AI maintains explanations without changing the rules |
-| [LITERATURE.md](LITERATURE.md) | Relevant papers, their roles, and what has actually been verified | AI updates with checked sources; humans review |
-| [Project proposal](proposal/Proposal_xiaodi_guanlin.pdf) | The supplied project scope and four references | Humans approve revisions |
+| [Project rules](docs/PROJECT_RULES.md) | The shared rules every AI must read and follow | Humans; AI reads only |
+| [AI entry point](AGENTS.md) | Directs AI tools to the shared rules in `docs/` | Humans; AI reads only |
+| [Timeline](docs/TIMELINE.md) | What changed, who changed it, why, and what was checked | **AI**, including recording observed human changes |
+| [Project status](docs/PROJECT_STATUS.md) | Current scope, task owners, progress, blockers, and next steps | AI updates from verified work and human decisions |
+| [Collaboration guide](docs/COLLABORATION.md) | The detailed start/work/handoff procedure for both accounts | AI maintains explanations without changing the rules |
+| [Literature](docs/LITERATURE.md) | Relevant papers, their roles, and what has actually been verified | AI updates with checked sources; humans review |
+| [Project proposal](docs/proposal/Proposal_xiaodi_guanlin.pdf) | The supplied project scope and four references | Humans approve revisions |
+| [Source directory](src/README.md) | Where AI and humans place newly created project code | AI/humans working on authorized coding tasks |
 | [CLAUDE.md](CLAUDE.md) | A short pointer directing Claude sessions to the same rules | Humans after setup; AI reads only |
 | [.github/CODEOWNERS](.github/CODEOWNERS) | Identifies reviewers for rules and governance files | Humans; requires GitHub review settings for enforcement |
 | [PR template](.github/pull_request_template.md) | A checklist for explaining and reviewing a proposed change | AI fills it when preparing a PR |
-| [.gitignore](.gitignore) | Allows only the agreed documentation files to be staged by default | Humans approve changes to the publication scope |
+| [.gitignore](.gitignore) | Allows the shared documents and `src/`; excludes local caches and outputs | Humans approve changes to the publication scope |
 
-`PROJECT_STATUS.md` answers **“Where are we now?”**;
-`TIMELINE.md` answers **“How did we get here?”**. Git commits preserve the
-exact saved differences. `AGENTS.md` answers **“What rules must the AI follow?”**
+`docs/PROJECT_STATUS.md` answers **“Where are we now?”**;
+`docs/TIMELINE.md` answers **“How did we get here?”**. Git commits preserve the
+exact saved differences. `docs/PROJECT_RULES.md` answers **“What rules must the AI follow?”**
 
 ## What Xiaodi and Guanlin need to do
 
@@ -50,14 +76,16 @@ exact saved differences. `AGENTS.md` answers **“What rules must the AI follow?
 
 ## Copy this prompt into either AI account
 
-> I am [Xiaodi / Guanlin]. Read AGENTS.md, PROJECT_STATUS.md,
-> COLLABORATION.md, and the recent TIMELINE.md entries before working.
+> I am [Xiaodi / Guanlin]. Read AGENTS.md, docs/PROJECT_RULES.md,
+> docs/PROJECT_STATUS.md, docs/COLLABORATION.md, and the recent
+> docs/TIMELINE.md entries before working.
 > Inspect Git status, diffs, recent commits, and accessible remote branches
 > and pull requests. Reconcile any unlogged changes, including human edits,
 > without guessing their authorship. Follow the shared rules. Maintain the
 > timeline and project status yourself, verify your work, and give me a
-> clear handoff. Do not edit the human-owned rules or publish code. My task
-> is: [describe the task].
+> clear handoff. Store all newly created project code under src/. Do not
+> edit the human-owned rules or import existing local prototypes unless
+> explicitly instructed. My task is: [describe the task].
 
 Codex loads repository `AGENTS.md` instructions when opened in the project;
 other tools may need the explicit prompt. Merely pasting the repository URL
@@ -78,7 +106,7 @@ new entries so no changed tracked or nonignored untracked file is omitted.
 This is AI responsibility during active sessions, **not a background
 service**. It cannot observe unsaved editor buffers or a collaborator's
 unpushed files. There is no checker script or CI workflow in this
-documentation-only repository.
+repository.
 
 ## Review protection and remaining setup
 
@@ -87,5 +115,5 @@ the humans decide and edit it. GitHub review protection helps prevent
 unreviewed merges but cannot distinguish a human from AI using that human's
 credentials. Keep review/merge authority with the people.
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the verified repository setup
+See [project status](docs/PROJECT_STATUS.md) for the verified repository setup
 state, including Guanlin's collaborator access and review settings.

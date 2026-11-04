@@ -22,10 +22,12 @@ Earlier local draft proposals are not included or substituted for this PDF.
 ## Publication decision
 
 - On 2026-11-04, Xiaodi authorized publication **without any code files**.
-- This repository contains collaboration documents and the proposal only.
+- The latest organization request groups collaboration documents under
+  `docs/` and reserves `src/` for all newly created project code. The source
+  directory currently contains explanatory Markdown only.
   Local solver code, tests, scripts, notebooks, result files, and their Git
   history remain unpublished. Existing local work is preserved separately.
-- The AI maintains `TIMELINE.md`, including recording observed human edits.
+- The AI maintains `docs/TIMELINE.md`, including recording observed human edits.
   Humans review work and own the rules; they have no routine logging duty.
 - No executable timeline checker, CI workflow, or numerical environment is
   included. Do not claim a fresh clone can run the local prototypes.
@@ -59,6 +61,7 @@ or cost comparisons that omit history storage.
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
 | Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
+| Group documents and establish source directory | Xiaodi; Codex assisting | `xiaodi/organize-docs-src`; root entry points, `docs/`, `src/README.md`, review configuration | Structure verified; submit PR for the other human's required review |
 | Test-problem and success-target agreement | Unassigned | To be claimed | Next scientific planning task |
 | Literature/formulation notes | Unassigned | To be claimed | Read needed equations before implementation |
 
@@ -72,7 +75,8 @@ the timeline. Local claims are not shared until pushed.
 - Publication uses a separate documentation-only clone and fresh Git history.
   The initial upload was verified against its exact 11-file allowlist; no
   source code, executable tooling, result files, or earlier code commits
-  were included. Future additions still require publication-scope approval.
+  were included. This new organization request changes where files belong,
+  not the decision to keep the earlier local prototypes unpublished.
 - Only `markzhou694` was listed as a collaborator at the latest check.
 - Guanlin's verified account is `Lim-miL-Lim`. The write-access invitation
   has been sent with Xiaodi's explicit approval; Guanlin must accept it.
@@ -84,4 +88,6 @@ the timeline. Local claims are not shared until pushed.
   Activation is a GitHub administration setting; inspect
   [live branch settings](https://github.com/markzhou694/capstone-computational-electromagnetic/settings/branches)
   for the active configuration rather than assuming files activate it.
-- Human-owned files become read-only for AI after this approved setup.
+- The reorganization updates governance paths and the source-placement rule
+  under Xiaodi's direct instruction. Other human-owned rules remain unchanged;
+  this task does not grant AI permission for autonomous governance edits.

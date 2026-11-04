@@ -1,7 +1,9 @@
 # Session and handoff procedure
 
-Read [README.md](README.md) for the file map and starting prompt.
-[AGENTS.md](AGENTS.md) is authoritative; this guide explains how to apply it.
+Read the [root README](../README.md) for the file map and starting prompt.
+[PROJECT_RULES.md](PROJECT_RULES.md) is authoritative; root
+[AGENTS.md](../AGENTS.md) points AI tools to it. Paths in the procedure below
+are relative to the repository root.
 
 ## One person, one clone, one task branch
 
@@ -26,7 +28,7 @@ do not reset/clean/stash automatically. With connector-only access, inspect
 the corresponding branch, commits, PRs, and full file contents. Say explicitly
 that local edits cannot be inspected from that connection.
 
-Claim the task in `PROJECT_STATUS.md` with human owner, branch, files or
+Claim the task in `docs/PROJECT_STATUS.md` with human owner, branch, files or
 interfaces, progress, and next step. Shared ownership is only visible after
 an authorized push. Check open PRs before overlapping edits. Avoid two AI
 sessions writing to the same local clone simultaneously.
@@ -47,7 +49,7 @@ Use this entry structure (replace all placeholders before saving):
 - Changed by: Human or AI; identify known person/tool and any uncertainty.
 - Recorded by: AI tool; working for Xiaodi or Guanlin.
 - Context: Branch, starting commit, and relevant PR or decision.
-- Files: `exact/path`, `another/path`, `TIMELINE.md`.
+- Files: `exact/path`, `another/path`, `docs/TIMELINE.md`.
 - Change and reason: What actually changed and why.
 - Verification: Commands/checks actually performed and their outcomes.
 - Limitations: Missing access, skipped checks, or unresolved issues.
@@ -65,9 +67,12 @@ supplies a correction, the AI appends a correction referencing the old entry.
 The AI updates status, appends its own entry, and compares all changed paths
 against the new entries. It verifies Markdown links, checks for conflicting
 claims, inspects the diff, and runs `git diff --check`. It stages only the
-approved documents, reviews the staged diff, and commits the records with
-the changes. Do not add scripts or workflows to enforce logging under the
-current documentation-only scope.
+approved files, reviews the staged diff, and commits the records with
+the changes. Store newly created source files in `src/`, supporting scripts
+in `src/scripts/`, tests in `src/tests/`, and notebooks in `src/notebooks/`
+when needed. Shared prose and the timeline belong in `docs/`. There is no
+executable timeline checker or CI workflow; do not add one without a task
+request to do so.
 
 Before an authorized push, inspect the complete history being sent as well
 as the latest files. Never push a branch descended from the earlier local
@@ -82,7 +87,8 @@ the branch/commit, changes, verification, remaining issues, and next action.
 
 ## Rules and GitHub settings
 
-The humans maintain `AGENTS.md`, `CLAUDE.md`, `CODEOWNERS`, and `.gitignore`.
+The humans maintain `docs/PROJECT_RULES.md`, root `AGENTS.md`, `CLAUDE.md`,
+`.github/CODEOWNERS`, and `.gitignore`.
 AI may suggest changes in conversation; it must not apply them on its own.
 Keep approval/merge authority with humans rather than allowing two AI
 accounts to approve each other's work.
@@ -90,8 +96,8 @@ accounts to approve each other's work.
 The initial protection configuration requires one approving review, dismisses
 stale approvals, requires approval of the latest push by someone other than
 the pusher, resolves conversations, blocks force pushes/deletion, and applies
-to admins. The live settings link is in `PROJECT_STATUS.md`. No CI
-status is required because this repository intentionally has no code/workflow.
+to admins. The live settings link is in `docs/PROJECT_STATUS.md`. No CI
+status is currently required; no workflow has been installed.
 
 The verified accounts are `@markzhou694` (Xiaodi) and `@Lim-miL-Lim` (Guanlin).
 Both are listed on each CODEOWNERS line. Guanlin must accept the write-access
