@@ -61,7 +61,8 @@ or cost comparisons that omit history storage.
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
 | Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
-| Group documents and establish source directory | Xiaodi; Codex assisting | `xiaodi/organize-docs-src`; root entry points, `docs/`, `src/README.md`, review configuration | Structure verified; [PR #1](https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1) awaits the other human's required review |
+| Group documents and establish source directory | Xiaodi; Codex assisting | `main`; root entry points, `docs/`, `src/README.md`, review configuration | Applied directly to main under Xiaodi's explicit instruction; [PR #1](https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1) contains the original organization history |
+| Allow human-authorized main updates | Xiaodi; Codex assisting | `main`; rules, collaboration guide, README, PR template, timeline; GitHub branch protection | Mandatory peer review removed at Xiaodi's direction; humans retain control over publication and rule changes |
 | Test-problem and success-target agreement | Unassigned | To be claimed | Next scientific planning task |
 | Literature/formulation notes | Unassigned | To be claimed | Read needed equations before implementation |
 
@@ -81,13 +82,14 @@ the timeline. Local claims are not shared until pushed.
 - Guanlin's verified account is `Lim-miL-Lim`. The write-access invitation
   has been sent with Xiaodi's explicit approval; Guanlin must accept it.
   Both human accounts are listed in CODEOWNERS.
-- Main-branch policy: require a PR, one approval from the other human,
-  code-owner review, fresh approval after changes, approval of the latest
-  push by someone other than the pusher, resolved conversations, no force
-  pushes/deletion, and enforcement for admins. No CI checks are required.
-  Activation is a GitHub administration setting; inspect
+- Main-branch policy, updated at Xiaodi's explicit direction: direct pushes
+  to main are allowed when human-authorized. PRs and peer reviews are
+  optional; there is no required code-owner or latest-push approval.
+  Force pushes and deletion remain blocked, the remaining protections apply
+  to admins, and PR conversations must be resolved. No CI checks are required.
+  This replaces the initial mandatory second-person review policy. Inspect
   [live branch settings](https://github.com/markzhou694/capstone-computational-electromagnetic/settings/branches)
   for the active configuration rather than assuming files activate it.
-- The reorganization updates governance paths and the source-placement rule
-  under Xiaodi's direct instruction. Other human-owned rules remain unchanged;
-  this task does not grant AI permission for autonomous governance edits.
+- The reorganization and review-policy correction follow Xiaodi's direct
+  instructions. AI may implement explicitly requested rule changes and must
+  log the authorization; it still cannot make autonomous governance edits.

@@ -15,5 +15,5 @@ Next step:
 - [ ] Every changed path is covered; prior timeline entries are retained.
 - [ ] Project status reflects the actual scope, owner, and progress.
 - [ ] Any authorized new code is under `src/`; no unapproved local prototype, outputs, or old code history is imported.
-- [ ] Any governance change was explicitly requested by a human and receives the other human's review.
-- [ ] The other human reviews before merging.
+- [ ] Any governance change was explicitly requested by a human and that authorization is recorded.
+- [ ] A human authorized publication/merging; a second person's review is optional.

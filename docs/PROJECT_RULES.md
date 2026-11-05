@@ -7,11 +7,13 @@ Human maintainers: **Xiaodi Zhou and Guanlin Wang**.
 This is the single shared rule file for both humans' AI accounts. All paths
 in these rules are relative to the repository root. The
 approved initial setup establishes these rules. Afterwards, AI must not
-edit, delete, rename, replace, or weaken this file. Propose rule changes in
-conversation for the humans to decide and edit. The same restriction applies
-to root `AGENTS.md`, `CLAUDE.md`, `.github/CODEOWNERS`, and `.gitignore`. Do not create competing
-instructions or bypass review controls. Both humans must agree to governance
-changes; one authors the change and the other reviews it.
+edit, delete, rename, replace, or weaken this file on its own. A human
+maintainer may explicitly direct a specific rule change; AI may implement
+that instruction and must record the authorization in the timeline. The same
+restriction applies to root `AGENTS.md`, `CLAUDE.md`, `.github/CODEOWNERS`,
+`.github/pull_request_template.md`, and `.gitignore`. Do not create competing
+instructions or change repository permissions/protections without explicit
+human direction. A second human's approval is optional, not mandatory.
 
 ## File organization and publication scope
 
@@ -41,10 +43,11 @@ changes; one authors the change and the other reviews it.
    and recent commits. Fetch the remote and inspect relevant PRs when access
    permits. State when remote or local changes are inaccessible. Do not pull
    into a dirty tree or silently discard anyone's work.
-3. Identify the human owner and check the shared task table. Use one task
-   branch per contributor (`xiaodi/<topic>` or `guanlin/<topic>`). Coordinate
-   overlapping files/interfaces before editing. A local claim is not visible
-   to the other contributor until shared.
+3. Identify the human owner and check the shared task table. Task branches
+   (`xiaodi/<topic>` or `guanlin/<topic>`) are useful for parallel work, but
+   a human may authorize work and publication directly on `main` without a
+   PR or a second person's approval. Coordinate overlapping files/interfaces
+   before editing. A local claim is not visible until shared.
 4. Reconcile unlogged human/AI changes from diffs and commits before adding
    your work. Never infer human versus AI authorship from a Git username or
    file timestamp alone; record uncertainty explicitly.
@@ -104,8 +107,10 @@ changes; one authors the change and the other reviews it.
 ## Handoff and limits
 
 Report actual changes, verification, unresolved issues, and next steps.
-Publish only authorized files/history; require the other human's review
-before merging routine work. AI review does not replace human approval.
+Publish only authorized files/history. The responsible human may authorize a
+direct push to `main` or merge their own PR without another human's approval.
+Peer review is optional. AI must not treat its own review as permission to
+publish or merge; follow the human's explicit authorization.
 
 No background watcher or executable checker is deployed. Git tracks committed
 states, not unsaved buffers or every intermediate edit. AI cannot see the

@@ -5,7 +5,7 @@ Read the [root README](../README.md) for the file map and starting prompt.
 [AGENTS.md](../AGENTS.md) points AI tools to it. Paths in the procedure below
 are relative to the repository root.
 
-## One person, one clone, one task branch
+## Separate clones and coordinated work
 
 Both contributors use their own GitHub and AI accounts. Start the AI in this
 repository's root. It must inspect the shared files and actual Git state.
@@ -22,7 +22,8 @@ git fetch origin
 ```
 
 Inspect before switching or pulling. If the tree is clean, update `main`
-with a fast-forward and start `xiaodi/<topic>` or `guanlin/<topic>`. If it is
+with a fast-forward. Use `xiaodi/<topic>` or `guanlin/<topic>` for parallel
+tasks, or work directly on `main` when the human authorizes it. If the tree is
 dirty or diverged, preserve the changes and resolve the specific issue;
 do not reset/clean/stash automatically. With connector-only access, inspect
 the corresponding branch, commits, PRs, and full file contents. Say explicitly
@@ -79,8 +80,10 @@ as the latest files. Never push a branch descended from the earlier local
 solver repository: its history contains code even if the current tree does
 not. The published documentation repository has its own clean history.
 
-Open a PR when authorized and use its template. The other human reviews the
-diff and evidence. After main changes, reconcile the task branch without
+Publish directly to `main` when the human authorizes that action, or open a
+PR and use its template. The human may merge their own PR; peer review is
+optional. Before a direct push, fetch and integrate any new remote commits
+without overwriting work. After main changes, reconcile task branches without
 dropping either contributor's entries. Keep the main timeline intact and
 append unique task entries with their original IDs/times. At handoff, report
 the branch/commit, changes, verification, remaining issues, and next action.
@@ -90,22 +93,23 @@ the branch/commit, changes, verification, remaining issues, and next action.
 The humans maintain `docs/PROJECT_RULES.md`, root `AGENTS.md`, `CLAUDE.md`,
 `.github/CODEOWNERS`, and `.gitignore`.
 AI may suggest changes in conversation; it must not apply them on its own.
-Keep approval/merge authority with humans rather than allowing two AI
-accounts to approve each other's work.
+A human may explicitly direct a specific governance change and have AI
+implement it, with the authorization recorded in the timeline. Publication
+and merge authority remain with humans; AI review is not permission to push.
 
-The initial protection configuration requires one approving review, dismisses
-stale approvals, requires approval of the latest push by someone other than
-the pusher, resolves conversations, blocks force pushes/deletion, and applies
-to admins. The live settings link is in `docs/PROJECT_STATUS.md`. No CI
-status is currently required; no workflow has been installed.
+Xiaodi explicitly replaced the initial mandatory peer-review policy with
+human-authorized direct updates to `main` and optional PR review. No PR,
+second-person approval, code-owner approval, or latest-push approval is
+required. Main still blocks force pushes and deletion, and the remaining
+protections apply to admins. PR conversations must be resolved when using
+a PR. The live settings link is in `docs/PROJECT_STATUS.md`. No CI status
+is currently required; no workflow has been installed.
 
 The verified accounts are `@markzhou694` (Xiaodi) and `@Lim-miL-Lim` (Guanlin).
 Both are listed on each CODEOWNERS line. Guanlin must accept the write-access
-invitation before reviewing or pushing. Until then, Xiaodi's PRs cannot get
-the other owner's required approval. Xiaodi cannot approve Xiaodi's own PR.
-Do not weaken protections just to let
-an AI merge. A two-person team needs one approval from the other person,
-not two approvals from a team containing only two people.
+invitation before pushing. That invitation does not block Xiaodi's updates.
+GitHub does not let a PR author submit an approving review of their own PR,
+but the author can merge it because approving reviews are optional here.
 
 Sources checked during initial setup:
 [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md),

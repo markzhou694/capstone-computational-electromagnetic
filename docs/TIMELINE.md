@@ -63,3 +63,15 @@ See COLLABORATION.md for the recording and correction procedure.
 - Verification: Task branch push succeeded; GitHub returned PR #1 open and unmerged with the expected base and head. Earlier timeline content remains unchanged; only status/link and this appended record change in this handoff.
 - Limitations: Protected main still requires the other human's approval; no merge or protection bypass has been performed.
 - Next: Guanlin reviews PR #1 and approves it before merge. Continue to store newly created source code under src/ after this organization is adopted.
+
+## 2026-11-05T00:06:37+00:00 | direct-main-authorization-20261104
+
+- Changed by: Codex, implementing Xiaodi Zhou's explicit instruction to change main directly after he rejected mandatory second-person approval.
+- Recorded by: Codex, working for Xiaodi Zhou (@markzhou694).
+- Context: Main was fast-forwarded locally from f61b79033325148a5336573e95399c46d8ad4b6a to the prepared organization history ending at 34fe886f1234a9b4fd21651fa5194623e1150a90. This includes the paths already recorded in organize-docs-src-20261104 and organize-docs-src-pr-20261104. PR #1 had been closed and its branch deleted; at Xiaodi's request, Codex restored that exact branch head and reopened the PR, without changing file content.
+- Files: `.github/pull_request_template.md`, `README.md`, `docs/COLLABORATION.md`, `docs/PROJECT_RULES.md`, `docs/PROJECT_STATUS.md`, `docs/TIMELINE.md`.
+- Change and reason: Replaced mandatory two-person review with optional peer review and human-authorized direct main updates. A human may explicitly instruct a specific rule change; AI still cannot change governance on its own. Updated the README, procedure, checklist, and status consistently. The responsible human retains publication/merge authority. Earlier timeline entries remain unchanged; their mandatory-review next steps are superseded by this decision.
+- GitHub setting: Removed main's required-pull-request-review requirement at Xiaodi's explicit direction. Readback confirmed required_pull_request_reviews is null; admin enforcement and conversation resolution remain enabled, and force pushes and branch deletion remain disabled.
+- Verification: All local relative Markdown links resolve. Existing timeline content is retained byte for byte as a prefix. Literature and supplied proposal bytes are unchanged. All existing commits contain documentation/configuration/PDF files only; the current tree has 13 tracked files, src contains only README.md, and no nonignored untracked files are present. Whitespace checks passed for the policy edits. No solver code, scripts, workflows, outputs, or old prototype history are imported.
+- Limitations: No numerical tests were run because this change contains no implementation. GitHub settings authenticate accounts, not human versus AI actions. Remote publication of this final record still requires the authorized push and readback.
+- Next: Commit and push these prepared changes directly to main, then verify the remote commit/tree and PR state. Future work follows the updated human-controlled workflow; AI continues timeline maintenance.

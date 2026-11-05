@@ -41,16 +41,16 @@ configuration stays in its conventional `.github/` folder.
 
 | File | What to use it for | Who maintains it |
 | --- | --- | --- |
-| [Project rules](docs/PROJECT_RULES.md) | The shared rules every AI must read and follow | Humans; AI reads only |
-| [AI entry point](AGENTS.md) | Directs AI tools to the shared rules in `docs/` | Humans; AI reads only |
+| [Project rules](docs/PROJECT_RULES.md) | The shared rules every AI must read and follow | Humans; AI edits only on explicit human instruction |
+| [AI entry point](AGENTS.md) | Directs AI tools to the shared rules in `docs/` | Humans; AI edits only on explicit human instruction |
 | [Timeline](docs/TIMELINE.md) | What changed, who changed it, why, and what was checked | **AI**, including recording observed human changes |
 | [Project status](docs/PROJECT_STATUS.md) | Current scope, task owners, progress, blockers, and next steps | AI updates from verified work and human decisions |
 | [Collaboration guide](docs/COLLABORATION.md) | The detailed start/work/handoff procedure for both accounts | AI maintains explanations without changing the rules |
 | [Literature](docs/LITERATURE.md) | Relevant papers, their roles, and what has actually been verified | AI updates with checked sources; humans review |
 | [Project proposal](docs/proposal/Proposal_xiaodi_guanlin.pdf) | The supplied project scope and four references | Humans approve revisions |
 | [Source directory](src/README.md) | Where AI and humans place newly created project code | AI/humans working on authorized coding tasks |
-| [CLAUDE.md](CLAUDE.md) | A short pointer directing Claude sessions to the same rules | Humans after setup; AI reads only |
-| [.github/CODEOWNERS](.github/CODEOWNERS) | Identifies reviewers for rules and governance files | Humans; requires GitHub review settings for enforcement |
+| [CLAUDE.md](CLAUDE.md) | A short pointer directing Claude sessions to the same rules | Humans; AI edits only on explicit human instruction |
+| [.github/CODEOWNERS](.github/CODEOWNERS) | Identifies owners and optional reviewers for rules and governance files | Humans; owner approval is not required for merging |
 | [PR template](.github/pull_request_template.md) | A checklist for explaining and reviewing a proposed change | AI fills it when preparing a PR |
 | [.gitignore](.gitignore) | Allows the shared documents and `src/`; excludes local caches and outputs | Humans approve changes to the publication scope |
 
@@ -70,9 +70,10 @@ exact saved differences. `docs/PROJECT_RULES.md` answers **“What rules must th
    routine timeline entries. If you edit a file yourself, the AI records the
    observed change at its next inspection. Tell it about intent or offline
    work that Git cannot reveal.
-4. Review the AI's diff and evidence. Share authorized work on a task branch;
-   the other human reviews the pull request before it is merged into `main`.
-   Local changes are invisible to your collaborator until pushed.
+4. Review the AI's diff and evidence. You may authorize a direct update to
+   `main` or use a task branch and PR. You can merge your own PR without the
+   other person's approval; peer review is optional. Local changes are
+   invisible to your collaborator until pushed.
 
 ## Copy this prompt into either AI account
 
@@ -108,12 +109,14 @@ service**. It cannot observe unsaved editor buffers or a collaborator's
 unpushed files. There is no checker script or CI workflow in this
 repository.
 
-## Review protection and remaining setup
+## Human control and remaining setup
 
-The two humans own the rules. AI can suggest a rule change in conversation;
-the humans decide and edit it. GitHub review protection helps prevent
-unreviewed merges but cannot distinguish a human from AI using that human's
-credentials. Keep review/merge authority with the people.
+The two humans own the rules. AI may suggest changes, but may edit a rule
+only when a human explicitly directs that specific change. The responsible
+human controls publication and merging; a second person's approval is not
+required. Direct updates to `main` are allowed when authorized. Force pushes
+and deletion of `main` remain blocked. GitHub cannot distinguish a human
+from AI using that human's credentials.
 
 See [project status](docs/PROJECT_STATUS.md) for the verified repository setup
 state, including Guanlin's collaborator access and review settings.
