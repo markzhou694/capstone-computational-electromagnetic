@@ -1,4 +1,4 @@
-"""Plot E or H from a Yee solver result; see ../docs/API.md for formats.
+"""Plot E or H from a Yee solver result; function docstrings specify formats.
 
 Workflow: sample_fields(...) -> frames -> save_results(...).
 Only drawing/export needs Matplotlib and Pillow. Sampling needs only NumPy.

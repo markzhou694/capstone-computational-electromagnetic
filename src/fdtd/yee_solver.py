@@ -4,7 +4,7 @@ All inputs use SI units. Arrays use axis order (x, y, z).
 For cells=(Nx, Ny, Nz), the staggered field shapes are:
     E: (Nx, Ny+1, Nz+1), (Nx+1, Ny, Nz+1), (Nx+1, Ny+1, Nz)
     H: (Nx+1, Ny, Nz),   (Nx, Ny+1, Nz),   (Nx, Ny, Nz+1)
-See ../docs/API.md for the complete calling contract and runnable examples.
+See solve's docstring for the calling contract, units and return values.
 This module depends only on NumPy; it does not import example or plotting code.
 """
 
@@ -180,7 +180,7 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         centers: (xc,yc,zc) arrays of lengths Nx,Ny,Nz [m].
         spacing: float array (3,) [m]; time,dt: floats [s]; steps: int.
         cfl: actual dt/dt_limit; epsilon,mu: the medium parameters.
-    Field shapes are listed in the module docstring and ../docs/API.md.
+    Field shapes are listed in the module docstring.
 
     Notes
     -----

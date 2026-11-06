@@ -1,6 +1,30 @@
 # Shared project status
 
-Last reviewed: **2026-11-04**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+Last reviewed: **2026-11-06**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+
+## Current FDTD layout — 2026-11-06
+
+This section supersedes earlier documentation-only/local-only FDTD statements
+below. Xiaodi uploaded the FDTD project to `main` in commit `266b983` and then
+explicitly requested exactly three files under `src/fdtd/`:
+`fdtd_3d.py`, `plot_fields.py`, and `yee_solver.py`.
+Codex flattened the nested source directory and removed its duplicated README,
+math/API/pseudocode documents and tests from the active subtree. The proposal,
+literature and shared collaboration documents remain in their existing places.
+Run `python src/fdtd/fdtd_3d.py`; generated PNG/GIF files go to root `outputs/`.
+
+Verification: the 14 existing tests were loaded from the external backup and
+passed against the relocated modules. A separate 8 x 10 x 12, 0.2 ns entry-point
+run exported readable PNG/GIF files to a temporary directory; a mocked export
+checked the default root output path. Solver and plotting executable ASTs
+were unchanged. These checks validate relocation and existing test problems,
+not the physical accuracy of the currently edited DIY example.
+
+Known inherited settings remain: MU0 includes `+0.1` and is not the vacuum
+value; the DIY waveform includes a step and differs from its original smooth
+pulse description. No PML, material map or exterior reconstruction was added.
+Human owner: Xiaodi; Codex assisting; branch `main`. Earlier unrelated local
+documentation edits remain outside this change's staged content.
 
 ## Current scope
 

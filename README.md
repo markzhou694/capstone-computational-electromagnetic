@@ -8,11 +8,18 @@ This repository is our shared project notebook and collaboration space.
 We use separate personal AI accounts, so the files here carry the project
 context between sessions. GitHub does not synchronize our private chats.
 
-Shared documents are grouped in **`docs/`**. **`src/` is the home for all
-new project code**, including Python and MATLAB files. It currently contains
-an explanatory README only; no existing local solver code, results, or old
-code history have been imported. Code implementation and publication still
-follow the humans' task instructions.
+Shared documents are grouped in **`docs/`**. **`src/` is the home for project
+code**. The [3D FDTD example](src/fdtd/fdtd_3d.py) contains exactly three Python
+files in `src/fdtd/`: the editable current/run entry point, the Yee solver,
+and plotting. Function docstrings describe inputs, outputs, units and equations.
+
+From the repository root, run with NumPy, Matplotlib and Pillow installed:
+
+```bash
+python src/fdtd/fdtd_3d.py
+```
+
+A successful run saves PNG and GIF files in the ignored root `outputs/` folder.
 
 ## Repository layout
 
@@ -29,7 +36,8 @@ docs/
   proposal/
     Proposal_xiaodi_guanlin.pdf
 src/
-  README.md                Code placement instructions; no solver yet
+  README.md                Code placement and run instructions
+  fdtd/                    fdtd_3d.py, plot_fields.py, yee_solver.py
 .github/                   GitHub review ownership and PR template
 ```
 

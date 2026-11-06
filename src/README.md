@@ -16,6 +16,21 @@ Read the root [AGENTS.md](../AGENTS.md) and the shared
 - Record each change in [docs/TIMELINE.md](../docs/TIMELINE.md) and update
   [docs/PROJECT_STATUS.md](../docs/PROJECT_STATUS.md) as appropriate.
 
-This folder currently contains this README only. No solver has been copied
-or implemented. Existing local prototype code and its history remain
-unpublished unless the humans explicitly authorize importing them.
+## 3D FDTD
+
+The active FDTD folder contains only:
+
+```text
+fdtd/
+  fdtd_3d.py      Editable parameters/current and run entry point
+  plot_fields.py E/H sampling, plots and PNG/GIF export
+  yee_solver.py  Reusable uniform-medium 3D Yee solver
+```
+
+Run `python src/fdtd/fdtd_3d.py` from the repository root with NumPy,
+Matplotlib and Pillow installed. Outputs go to root `outputs/` (ignored).
+Calling formats and mathematical expressions are in the Python docstrings.
+Xiaodi requested this three-file layout; duplicated FDTD documentation and
+tests were removed from this subtree. Their prior versions remain in Git
+history and in a local backup outside the repository. The original sibling
+`capstone_code/` is separate and does not automatically synchronize here.

@@ -8,7 +8,9 @@ Initial E=H=rho=0; tangential E=0 on the six PEC walls.
 
 To build your own J: set USE_CUSTOM_CURRENT=True and edit custom_current.
 Start with J = amplitude * spatial_shape * time_waveform * direction.
-For other simulations, call yee_solver.solve directly; see ../docs/API.md.
+For other simulations, call yee_solver.solve directly; see its docstring.
+Run from the repository root: python src/fdtd/fdtd_3d.py
+Dependencies: NumPy, Matplotlib, Pillow.
 """
 
 from pathlib import Path
@@ -201,7 +203,7 @@ def dc_wire_current(x, y, t):
 def main(output_dir=None):
     """Run this example using the module parameters and export both plots.
 
-    Input: output_dir is a str/Path, or None for capstone_code/outputs.
+    Input: output_dir is a str/Path, or None for repository-root outputs/.
     Returns: (result, paths); result is the solve dict, paths is the
         save_results dict {'png': Path, 'gif': Path}.
     Creates/replaces the two plot files and prints a short run summary.
@@ -231,7 +233,7 @@ def main(output_dir=None):
         frame_every=FRAME_EVERY,
     )
     if output_dir is None:
-        output_dir = Path(__file__).resolve().parents[1] / "outputs"
+        output_dir = Path(__file__).resolve().parents[2] / "outputs"
     paths = save_results(result, frames, output_dir, fps=GIF_FPS, kind=PLOT_FIELD)
     print(f"Grid: {NX} x {NY} x {NZ}; steps: {result['steps']}")
     print(f"dx,dy,dz [m]: {result['spacing']}; dt [ns]: {result['dt'] * 1e9:.6g}")
