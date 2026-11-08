@@ -8,9 +8,7 @@ Initial E=H=rho=0; tangential E=0 on the six PEC walls.
 
 To build your own J: set USE_CUSTOM_CURRENT=True and edit custom_current.
 Start with J = amplitude * spatial_shape * time_waveform * direction.
-For other simulations, call yee_solver.solve directly; see its docstring.
-Run from the repository root: python src/fdtd/fdtd_3d.py
-Dependencies: NumPy, Matplotlib, Pillow.
+For other simulations, call yee_solver.solve directly; see ../docs/API.md.
 """
 
 from pathlib import Path
@@ -24,7 +22,7 @@ from plot_fields import sample_fields, save_results
 X_RANGE = (-1.0, 1.0)
 Y_RANGE = (-1.0, 1.0)
 Z_RANGE = (-1.0, 1.0)
-NX, NY, NZ = 40, 40, 40
+NX, NY, NZ =50, 50, 50
 T_END_NS = 12.0
 CFL = 0.8                   # Stability fraction: 0 < CFL <= 1.
 
@@ -33,7 +31,7 @@ PLOT_FIELD = "E"             # "E": electric field; "H": magnetic field.
 FRAME_EVERY = 1              # Record every this many steps.
 GIF_FPS = 12                 # Playback speed; does not affect the solution.
 
-USE_CUSTOM_CURRENT = True   # True: use only custom_current below.
+USE_CUSTOM_CURRENT =True   # True: use only custom_current below.
 
 # DC wire along z, through the box; its current is independent of z.
 DC_CURRENT_A = 100.0         # Current coefficient [A]; 0 disables the wire.
@@ -42,7 +40,7 @@ DC_WIRE_WIDTH = 0.04         # Gaussian cross-section standard deviation [m].
 DC_RAMP_NS = 1.0             # Smooth turn-on duration [ns].
 
 # Optional Gaussian pulse; currently disabled by J_AMPLITUDE = 0.
-J_AMPLITUDE = 0.0            # Current-density coefficient [A/m^2].
+J_AMPLITUDE = 10.0            # Current-density coefficient [A/m^2].
 SOURCE_CENTER = (0.0, 0.0, 0.0)  # Pulse center [m].
 SOURCE_WIDTH = 0.1          # Spatial Gaussian standard deviation [m].
 SOURCE_RADIUS = 0.3         # Cutoff radius [m]; None means no cutoff.
@@ -52,7 +50,7 @@ PULSE_WIDTH_NS = 0.5        # Time-envelope width parameter [ns].
 
 
 # ===== 2. Current equations =====
-def current_density(x, y, z, t):
+def current_density(x, y, z, t , dc = False, sym = True):
     """Select the DIY current or add the example pulse and wire currents.
 
     Inputs: x,y,z are scalars or broadcastable NumPy arrays [m]; t is [s].
@@ -63,9 +61,23 @@ def current_density(x, y, z, t):
     """
     if USE_CUSTOM_CURRENT:
         return custom_current(x, y, z, t)
-    Jx = 0.0
-    Jy = 0.0
-    Jz = pulse_current(x, y, z, t) + dc_wire_current(x, y, t)
+
+    x0, y0, z0 = SOURCE_CENTER
+    if sym:
+        r = np.sqrt((x - x0)**2 + (y - y0)**2 + (z - z0)**2)
+        r_safe = np.where(r > 0, r, 1.0)        # avoid 0/0 at the center
+        p = pulse_current(x, y, z, t)           # g(r) f(t)
+        Jx = p * np.where(r > 0, (x - x0) / r_safe, 0.0)
+        Jy = p * np.where(r > 0, (y - y0) / r_safe, 0.0)
+        Jz = p * np.where(r > 0, (z - z0) / r_safe, 0.0)
+    else:
+
+        Jx = 0
+        Jy = 0
+        Jz = pulse_current(x, y, z, t) + dc_wire_current(x, y, t) if dc else pulse_current(x, y, z, t)
+        
+    
+    
     return Jx, Jy, Jz
 
 
@@ -90,11 +102,11 @@ def custom_current(x, y, z, t):
     It can build charge; the solver updates rho from -div(J).
     """
     # 1. Set strength, location, size, duration, and direction.
-    amplitude = 1.0          # J0 [A/m^2]
+    amplitude = 1000000.0          # J0 [A/m^2]
     center = (0.0, 0.0, 0.0) # [m]
-    radius = 0.3            # R > 0 [m]; keep the sphere inside the box. A cut off 
-    duration_ns = 10.0       # T > 0 [ns]
-    direction = (1.0, -1.0, 1.0)  # Any nonzero direction; normalized below.
+    radius = 0.5            # R > 0 [m]; keep the sphere inside the box. A cut off 
+    duration_ns = 5.0       # T > 0 [ns]
+    direction = (2.0, -1.3, 0.55)  # Any nonzero direction; normalized below.
     if radius <= 0 or duration_ns <= 0:
         raise ValueError("DIY radius and duration_ns must be positive.")
 
@@ -117,13 +129,17 @@ def custom_current(x, y, z, t):
     # Alternative: uniform inside the same sphere (a sharp boundary).
     # spatial = np.where(r_squared <= radius**2, 1.0, 0.0)
 
-    # 3. Time waveform: one smooth pulse, zero before and after it.
-
-
-    ## change it freely
+    
+    # 3. Time waveform: windowed linear chirp, f0 -> f1 over [0, T].
+    #    A(t) = sin^2(pi t/T) * sin(2 pi [f0 t + (f1-f0)/(2T) t^2])
+    f0_ghz = 0.3            # start frequency [GHz]
+    f1_ghz = 1.5            # end frequency [GHz]
     t_ns = t * 1e9
     if 0 < t_ns < duration_ns:
-        waveform = np.sin(np.pi * t_ns / duration_ns)**2 + (1+ np.heaviside(t_ns-duration_ns/2,1)) # smooth turn on and off
+        window = np.sin(np.pi * t_ns / duration_ns)**2
+        phase = 2 * np.pi * (f0_ghz * t_ns * np.sin(2 * np.pi * t_ns / duration_ns)
+                             + (f1_ghz - f0_ghz) / (2 * duration_ns) * np.exp(t_ns)**2)
+        waveform = window * np.sin(phase)
     else:
         waveform = 0.0
 
@@ -203,7 +219,7 @@ def dc_wire_current(x, y, t):
 def main(output_dir=None):
     """Run this example using the module parameters and export both plots.
 
-    Input: output_dir is a str/Path, or None for repository-root outputs/.
+    Input: output_dir is a str/Path, or None for capstone_code/outputs.
     Returns: (result, paths); result is the solve dict, paths is the
         save_results dict {'png': Path, 'gif': Path}.
     Creates/replaces the two plot files and prints a short run summary.
@@ -233,7 +249,7 @@ def main(output_dir=None):
         frame_every=FRAME_EVERY,
     )
     if output_dir is None:
-        output_dir = Path(__file__).resolve().parents[2] / "outputs"
+        output_dir = Path(__file__).resolve().parents[1] / "outputs"
     paths = save_results(result, frames, output_dir, fps=GIF_FPS, kind=PLOT_FIELD)
     print(f"Grid: {NX} x {NY} x {NZ}; steps: {result['steps']}")
     print(f"dx,dy,dz [m]: {result['spacing']}; dt [ns]: {result['dt'] * 1e9:.6g}")
