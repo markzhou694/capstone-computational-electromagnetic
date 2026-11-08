@@ -102,7 +102,7 @@ def custom_current(x, y, z, t):
     It can build charge; the solver updates rho from -div(J).
     """
     # 1. Set strength, location, size, duration, and direction.
-    amplitude = 1000000.0          # J0 [A/m^2]
+    amplitude = 100.0          # J0 [A/m^2]
     center = (0.0, 0.0, 0.0) # [m]
     radius = 0.5            # R > 0 [m]; keep the sphere inside the box. A cut off 
     duration_ns = 5.0       # T > 0 [ns]
