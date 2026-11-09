@@ -11,8 +11,8 @@ This module depends only on NumPy; it does not import example or plotting code.
 import numpy as np
 
 C0 = 299_792_458.0
-MU0 = 4 * np.pi * 1e-7 +0.1
-EPSILON0 = 1 / (MU0 * C0**2)
+MU0 = 4 * np.pi * 1e-7  # vacuum permeability [H/m]
+EPSILON0 = 1 / (MU0 * C0**2)  # vacuum permittivity [F/m]
 
 
 def curl_e(electric, spacing):
@@ -73,6 +73,19 @@ def divergence_e(fields, spacing):
     dfy_dy = np.diff(fy[1:-1, :, 1:-1], axis=1) / dy
     dfz_dz = np.diff(fz[1:-1, 1:-1, :], axis=2) / dz
     return dfx_dx + dfy_dy + dfz_dz
+
+
+def gauss_law_residual(electric, charge, spacing, epsilon=EPSILON0):
+    """Return the discrete interior Gauss-law residual [C/m^3].
+
+    The Yee-grid divergence is evaluated at interior nodes.  PEC surface
+    charges are intentionally excluded, so this is an *interior* diagnostic:
+
+        residual = epsilon * div_h(E) - rho.
+
+    Arrays use the same placement as solve() and are not modified.
+    """
+    return epsilon * divergence_e(electric, spacing) - charge
 
 
 def sample_current(current_density, coordinates, time):
@@ -180,6 +193,8 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         centers: (xc,yc,zc) arrays of lengths Nx,Ny,Nz [m].
         spacing: float array (3,) [m]; time,dt: floats [s]; steps: int.
         cfl: actual dt/dt_limit; epsilon,mu: the medium parameters.
+        gauss_residual_rms, gauss_residual_max: interior discrete Gauss-law
+            residual diagnostics [C/m^3] at the final time.
     Field shapes are listed in the module docstring.
 
     Notes
@@ -264,7 +279,12 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
             aligned_h = magnetic_at_e_time(electric, magnetic, spacing, dt, mu)
             on_frame((n + 1) * dt, electric, tuple(centers), aligned_h)
 
-    # 3. Return fields at the same physical time, with grid and medium metadata.
+    # 3. Interior charge consistency: eps * div_h(E) - rho should be small.
+    residual = gauss_law_residual(electric, charge, spacing, epsilon)
+    residual_rms = float(np.sqrt(np.mean(residual**2)))
+    residual_max = float(np.max(np.abs(residual)))
+
+    # 4. Return fields at the same physical time, with grid and medium metadata.
     return {
         "electric": electric,
         "magnetic": magnetic_at_e_time(electric, magnetic, spacing, dt, mu),
@@ -280,4 +300,6 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         "cfl": dt / dt_limit,
         "epsilon": epsilon,
         "mu": mu,
+        "gauss_residual_rms": residual_rms,
+        "gauss_residual_max": residual_max,
     }
