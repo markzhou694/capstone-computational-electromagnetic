@@ -11,7 +11,7 @@ This module depends only on NumPy; it does not import example or plotting code.
 import numpy as np
 
 C0 = 299_792_458.0
-MU0 = 4 * np.pi * 1e-7 +0.1
+MU0 = 4 * np.pi * 1e-7 
 EPSILON0 = 1 / (MU0 * C0**2)
 
 
