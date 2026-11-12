@@ -22,16 +22,27 @@ from plot_fields import sample_fields, save_results
 X_RANGE = (-1.0, 1.0)
 Y_RANGE = (-1.0, 1.0)
 Z_RANGE = (-1.0, 1.0)
-NX, NY, NZ =50, 50, 50
+NX, NY, NZ = 90, 90,90
 T_END_NS = 12.0
 CFL = 0.8                   # Stability fraction: 0 < CFL <= 1.
 
+# PML occupies these outer cells INSIDE the box; the outer wall stays PEC.
+# Keep the current source inside [min+PML_CELLS*d, max-PML_CELLS*d].
+USE_PML = True              # False reproduces the original PEC-only solver.
+PML_CELLS = 8               # Per side; 2*PML_CELLS < min(NX, NY, NZ).
+PML_ORDER = 3               # m in sigma(l) = sigma_max * (l/L)**m.
+PML_TARGET_REFLECTION = 1e-6 # Theoretical normal-incidence amplitude ratio.
+PML_SIGMA_MAX = None        # Optional scalar or (x,y,z) override [S/m].
+# None uses sigma_max = -(m+1)*ln(R0)/(2*eta*L), eta=sqrt(mu/epsilon).
+# Sources extending into PML (e.g. the box-spanning DC wire) are not a
+# source-free absorbing-layer setup. PML does not remove static charge fields.
+
 # Output settings.
-PLOT_FIELD = "E"             # "E": electric field; "H": magnetic field.
+PLOT_FIELD = "H"             # "E": electric field; "H": magnetic field.
 FRAME_EVERY = 1              # Record every this many steps.
 GIF_FPS = 12                 # Playback speed; does not affect the solution.
 
-USE_CUSTOM_CURRENT =True   # True: use only custom_current below.
+USE_CUSTOM_CURRENT = True  # True: use only custom_current below.
 
 # DC wire along z, through the box; its current is independent of z.
 DC_CURRENT_A = 100.0         # Current coefficient [A]; 0 disables the wire.
@@ -50,7 +61,7 @@ PULSE_WIDTH_NS = 0.5        # Time-envelope width parameter [ns].
 
 
 # ===== 2. Current equations =====
-def current_density(x, y, z, t , dc = False, sym = True):
+def current_density(x, y, z, t , dc = False, sym = False):
     """Select the DIY current or add the example pulse and wire currents.
 
     Inputs: x,y,z are scalars or broadcastable NumPy arrays [m]; t is [s].
@@ -102,11 +113,11 @@ def custom_current(x, y, z, t):
     It can build charge; the solver updates rho from -div(J).
     """
     # 1. Set strength, location, size, duration, and direction.
-    amplitude = 100.0          # J0 [A/m^2]
+    amplitude = 500.0          # J0 [A/m^2]
     center = (0.0, 0.0, 0.0) # [m]
-    radius = 0.5            # R > 0 [m]; keep the sphere inside the box. A cut off 
-    duration_ns = 5.0       # T > 0 [ns]
-    direction = (2.0, -1.3, 0.55)  # Any nonzero direction; normalized below.
+    radius = 0.25            # R > 0 [m]; keep the sphere inside the box. A cut off 
+    duration_ns = 6.0       # T > 0 [ns]
+    direction = (2.5, -1.3, 0.55)  # Any nonzero direction; normalized below.
     if radius <= 0 or duration_ns <= 0:
         raise ValueError("DIY radius and duration_ns must be positive.")
 
@@ -247,12 +258,21 @@ def main(output_dir=None):
         current_density=custom_current if USE_CUSTOM_CURRENT else current_density,
         on_frame=record_frame,
         frame_every=FRAME_EVERY,
+        pml_cells=PML_CELLS if USE_PML else 0,
+        pml_order=PML_ORDER,
+        pml_reflection=PML_TARGET_REFLECTION,
+        pml_sigma_max=PML_SIGMA_MAX,
     )
     if output_dir is None:
         output_dir = Path(__file__).resolve().parents[1] / "outputs"
     paths = save_results(result, frames, output_dir, fps=GIF_FPS, kind=PLOT_FIELD)
     print(f"Grid: {NX} x {NY} x {NZ}; steps: {result['steps']}")
     print(f"dx,dy,dz [m]: {result['spacing']}; dt [ns]: {result['dt'] * 1e9:.6g}")
+    if USE_PML:
+        print(f"PML + PEC; physical bounds [m]: {result['physical_bounds'].tolist()}")
+        print(f"PML sigma_max (x,y,z) [S/m]: {result['pml']['sigma_max']}")
+    else:
+        print("PEC-only reflecting walls")
     print(f"Updated PNG and GIF in: {output_dir}")
     return result, paths
 
