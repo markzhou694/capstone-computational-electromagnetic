@@ -1,4 +1,4 @@
-"""Plot E or H from a Yee solver result; function docstrings specify formats.
+"""Plot E or H from a Yee solver result; see ../docs/API.md for formats.
 
 Workflow: sample_fields(...) -> frames -> save_results(...).
 Only drawing/export needs Matplotlib and Pillow. Sampling needs only NumPy.
@@ -121,6 +121,14 @@ def field_view(result, maximum, kind="E"):
             title=f"|{kind}| at {'xyz'[fixed]} = {position:.3g} m",
         )
         fig.colorbar(image, ax=ax, label=f"|{kind}| [{unit}]")
+        if "pml" in result:
+            from matplotlib.patches import Rectangle
+            interior = result["physical_bounds"]
+            ax.add_patch(Rectangle(
+                (interior[a, 0], interior[b, 0]),
+                interior[a, 1] - interior[a, 0], interior[b, 1] - interior[b, 0],
+                fill=False, edgecolor="cyan", linestyle="--", linewidth=1,
+            ))
         images.append(image)
     return {
         "figure": fig,
@@ -132,6 +140,8 @@ def field_view(result, maximum, kind="E"):
         "images": images,
         "title": fig.suptitle(""),
         "kind": kind,
+        "boundary_label": ("PML + PEC | dashed: physical interior"
+                           if "pml" in result else "PEC reflecting walls"),
     }
 
 
@@ -159,7 +169,8 @@ def draw_frame(frame, view):
     for image, plane in zip(view["images"], frame["planes"]):
         image.set_data(plane.T)
     view["title"].set_text(
-        f"3D FDTD | t = {frame['time'] * 1e9:.2f} ns | PEC reflecting walls"
+        f"3D FDTD | t = {frame['time'] * 1e9:.2f} ns | "
+        f"{view.get('boundary_label', 'PEC reflecting walls')}"
     )
 
 
