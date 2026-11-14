@@ -17,6 +17,26 @@ import yee_solver
 from yee_solver import solve
 from plot_fields import sample_fields, save_results
 
+
+## PML_length to PML_CELLS conversion: PML_length = PML_CELLS * d, where d is the cell size.
+def pml_length_to_cells(pml_length, bounds, cells):
+    """Convert a physical PML length to a number of grid cells.
+
+    Inputs: pml_length is a positive float; bounds is ((x_min,x_max),...);
+            cells is (NX,NY,NZ). Returns an integer PML_CELLS >= 0.
+    """
+    if pml_length <= 0:
+        raise ValueError("PML length must be positive.")
+    if len(bounds) != 3 or len(cells) != 3:
+        raise ValueError("Bounds and cells must have three dimensions.")
+    d = [(b[1] - b[0]) / n for b, n in zip(bounds, cells)] #  cell sizes in x,y,z
+    min_d = min(d)
+    pml_cells = int(np.ceil(pml_length / min_d)) # determine the number of cells needed for the PML length
+    if pml_cells * 2 >= min(cells):
+        raise ValueError("PML length too large for the grid; reduce it.")
+    return pml_cells
+
+
 # ===== 1. Parameters ===== # very important!
 
 # Normalized length and time. Material defaults are in yee_solver.py:
@@ -24,14 +44,15 @@ from plot_fields import sample_fields, save_results
 X_RANGE = (-1.0, 1.0)
 Y_RANGE = (-1.0, 1.0)
 Z_RANGE = (-1.0, 1.0)
-NX, NY, NZ = 60, 60, 60
+NX, NY, NZ = 100, 100, 100
 T_END = 10.0
 CFL = 0.7                   # Stability fraction: 0 < CFL <= 1.
 
 # PML occupies these outer cells INSIDE the box; the outer wall stays PEC.
 # Keep the current source inside [min+PML_CELLS*d, max-PML_CELLS*d].
 USE_PML = True              # False reproduces the original PEC-only solver.
-PML_CELLS = 6               # Per side; 2*PML_CELLS < min(NX, NY, NZ).
+PML_length = 0.3               # Physical length of the PML layer.
+PML_CELLS = pml_length_to_cells(PML_length, (X_RANGE, Y_RANGE, Z_RANGE), (NX, NY, NZ))
 PML_ORDER = 3               # m in sigma(l) = sigma_max * (l/L)**m.
 PML_TARGET_REFLECTION = 1e-6 # Theoretical normal-incidence amplitude ratio.
 PML_SIGMA_MAX = None        # Optional normalized scalar or (x,y,z) override.
@@ -47,7 +68,7 @@ GIF_FPS = 12                 # Playback speed; does not affect the solution.
 USE_CUSTOM_CURRENT = True  # True: use only custom_current below.
 
 # DIY source settings.
-CUSTOM_AMPLITUDE = 1.0        # Normalized current-density coefficient.
+CUSTOM_AMPLITUDE =1.0        # Normalized current-density coefficient.
 CUSTOM_CENTER = (0.0, 0.0, 0.0)
 CUSTOM_RADIUS = 0.25          # Compact spatial support radius.
 CUSTOM_DURATION = 6.0        # Current is zero outside [0, duration].
