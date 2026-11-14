@@ -2,6 +2,23 @@
 
 Last reviewed: **2026-11-14**. Humans: **Xiaodi Zhou and Guanlin Wang**.
 
+## Field animation visibility — 2026-11-14
+
+Xiaodi requested clearer oscillations and vector lengths. Codex updated
+only plotting behavior in src/fdtd/plot_fields.py: signed component slices
+(default z), fixed symmetric-log colors, and explicitly labeled per-frame
+square-root arrow lengths. Actual field amplitudes remain visible on the
+colorbars and peak readout. Known-field E/H checks passed for signs, zero,
+weak fields, direction reversal and arrow scaling. Full GIF export and
+visual inspection passed. Source edits (50^3, phase 3*pi*CUSTOM_FREQUENCY*t) are preserved;
+the amplitude changed from 10 to 100 during this task, with unknown authorship.
+The final regeneration uses the amplitude-100 snapshot: 619 solver steps
+to T=10, 620 GIF frames at 900x720, and a final PNG at 1500x1200. Standard
+src/outputs/fdtd_3d_current.png/.gif now contain the improved views. Signed
+early/late frames and the final PNG were inspected; finite E/H were checked.
+Solver and analysis files are unchanged. Plotting/docs are saved locally;
+source edits and generated GIF changes remain outside that commit.
+
 ## Normalized FDTD — 2026-11-14
 
 Xiaodi authorized normalized units and a local Git commit. Codex updated
@@ -20,8 +37,8 @@ physics setup completed 743 steps to T=10 with finite fields and a physical
 interior Gauss residual below 4.3e-15. E and H PNG/GIF exports were checked.
 The full-grid verification animation samples every 20 steps (39 frames);
 the saved code retains FRAME_EVERY=1. Verification plots are in the ignored
-`src/outputs/normalized_verification/` directory. The existing five-times
-plot scale is retained; the final weak E field is nearly dark on that scale.
+`src/outputs/normalized_verification/` directory. That earlier verification
+retained the five-times plot scale; the visibility change above replaces it.
 These checks validate consistent units and execution, not convergence or a
 full-duration reference-error bound. Existing tracked GIF changes/deletions
 remain outside the source/documentation commit.
@@ -170,6 +187,7 @@ or cost comparisons that omit history storage.
 
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
+| Make field GIFs readable | Xiaodi; Codex assisting | `main`; `src/fdtd/plot_fields.py`, output plots, docs | Implemented and verified; standard PNG/GIF regenerated at amplitude 100 |
 | Normalize FDTD and save locally | Xiaodi; Codex assisting | `main`; `src/fdtd/`, READMEs, status and timeline | Implemented and verified for local Git save; no push authorized |
 | Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
 | Group documents and establish source directory | Xiaodi; Codex assisting | `main`; root entry points, `docs/`, `src/README.md`, review configuration | Applied directly to main under Xiaodi's explicit instruction; [PR #1](https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1) contains the original organization history |

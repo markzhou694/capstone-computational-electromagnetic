@@ -42,6 +42,18 @@ preserving the former SI experiment. Source functions use t directly;
 there are no ns/GHz conversions. PML strength is calculated in the same
 units from the layer thickness, impedance and target reflection.
 
+For clearer oscillations, `plot_fields.py` shows a signed field component
+on each slice. Set `SLICE_COMPONENT` to `"x"`, `"y"`, or `"z"` there (default
+`"z"`). Red is positive, blue is negative, and white is zero. Colors use
+one fixed symmetric-log scale across the GIF, with a linear region near
+zero so weaker fields remain visible. The colorbar values are field values.
+Arrows are thicker and rescaled in each frame. Length is proportional to the
+square root of field magnitude, making weaker vectors visible; direction is
+unchanged. `ARROW_LENGTH` controls their largest displayed length
+as a fraction of the shortest box side. Compare colors and the displayed
+`max |E|` or `max |H|` for amplitude changes between frames. This affects only
+display, including the existing spatial averaging to cell centers.
+
 In `err_analysis.py`, `simulation_time(a,b,B,c,dt)` returns the last safe
 grid time with a 1.5 dt reserve. `result = fdtd_with_pml(T,dt)` uses the grid
 and PML parameters from fdtd_3d and always passes its custom_current.
