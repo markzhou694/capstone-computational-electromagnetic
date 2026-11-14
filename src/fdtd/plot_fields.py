@@ -1,4 +1,4 @@
-"""Plot E or H from a Yee solver result; see ../docs/API.md for formats.
+"""Plot E or H from a normalized-unit Yee solver result.
 
 Workflow: sample_fields(...) -> frames -> save_results(...).
 Only drawing/export needs Matplotlib and Pillow. Sampling needs only NumPy.
@@ -16,7 +16,7 @@ def cell_center_fields(field, kind="E"):
         E shapes: (Nx,Ny+1,Nz+1), (Nx+1,Ny,Nz+1), (Nx+1,Ny+1,Nz).
         H shapes: (Nx+1,Ny,Nz), (Nx,Ny+1,Nz), (Nx,Ny,Nz+1).
     Returns: (Fx_center,Fy_center,Fz_center), each shape (Nx,Ny,Nz).
-    Units are unchanged: E in [V/m], H in [A/m]. This is for display only.
+    Normalized field units are unchanged. This is for display only.
     """
     fx, fy, fz = field
     if kind == "E":
@@ -37,14 +37,14 @@ def cell_center_fields(field, kind="E"):
 def sample_fields(time, field, centers, kind="E"):
     """Copy three magnitude slices and sparse vectors into one small frame.
 
-    Inputs: time [s]; field=(Fx,Fy,Fz) with Yee shapes for kind="E" or "H";
-            centers=(xc,yc,zc), 1D arrays of lengths Nx,Ny,Nz [m].
-    Returns: dict with time [s], kind, maximum (float), vectors (3 arrays),
+    Inputs: time; field=(Fx,Fy,Fz) with Yee shapes for kind="E" or "H";
+            centers=(xc,yc,zc), 1D arrays of lengths Nx,Ny,Nz.
+    Returns: dict with time, kind, maximum (float), vectors (3 arrays),
         planes=(xy,xz,yz) of shapes (Nx,Ny), (Nx,Nz), (Ny,Nz).
         vectors use strides max(1,Nx//8), max(1,Ny//8), max(1,Nz//8).
-        Magnitudes/vectors use [V/m] for E or [A/m] for H.
+        Magnitudes/vectors use the same normalized units as the input fields.
     The slices pass through indices Nx//2, Ny//2, Nz//2. Returned arrays own
-    their data and may be kept after the solver advances. See API.md for keys.
+    their data and may be kept after the solver advances.
     """
     fx, fy, fz = cell_center_fields(field, kind)
     magnitude = np.sqrt(fx**2 + fy**2 + fz**2)
@@ -60,7 +60,7 @@ def sample_fields(time, field, centers, kind="E"):
     return {
         "time": float(time),
         "kind": kind,
-        "maximum": float(magnitude.max()),
+        "maximum": float(5*magnitude.max()),
         "vectors": (fx[samples].copy(), fy[samples].copy(), fz[samples].copy()),
         "planes": (
             magnitude[:, :, iz].copy(),
@@ -76,7 +76,7 @@ def field_view(result, maximum, kind="E"):
     Inputs: result dict from solve (uses bounds and centers); maximum is a
         nonnegative common field scale; kind is "E" or "H".
     Returns: a view dict for draw_frame, containing figure, vector_ax,
-        positions=(x,y,z) sampled grids [m], arrow_scale, maximum, arrows,
+        positions=(x,y,z) sampled grids, arrow_scale, maximum, arrows,
         images (three slice artists), title, and kind. No file is written.
     Uses a noninteractive Matplotlib backend. Caller must close view['figure'].
     """
@@ -90,7 +90,6 @@ def field_view(result, maximum, kind="E"):
         raise ValueError("maximum must be nonnegative and finite.")
     bounds, centers = result["bounds"], result["centers"]
     maximum = max(maximum, 1e-30)
-    unit = "V/m" if kind == "E" else "A/m"
     fig = plt.figure(figsize=(10, 8), layout="constrained")
     vector_ax = fig.add_subplot(2, 2, 1, projection="3d")
     sampled_centers = []
@@ -99,7 +98,7 @@ def field_view(result, maximum, kind="E"):
     positions = np.meshgrid(*sampled_centers, indexing="ij")
     vector_ax.set(
         xlim=bounds[0], ylim=bounds[1], zlim=bounds[2],
-        xlabel="x [m]", ylabel="y [m]", zlabel="z [m]",
+        xlabel="x", ylabel="y", zlabel="z",
         title=f"3D {kind} vectors (sampled; fixed scale)",
     )
     lengths = bounds[:, 1] - bounds[:, 0]
@@ -117,10 +116,10 @@ def field_view(result, maximum, kind="E"):
         )
         position = centers[fixed][len(centers[fixed]) // 2]
         ax.set(
-            xlabel=f"{'xyz'[a]} [m]", ylabel=f"{'xyz'[b]} [m]",
-            title=f"|{kind}| at {'xyz'[fixed]} = {position:.3g} m",
+            xlabel=f"{'xyz'[a]}", ylabel=f"{'xyz'[b]}",
+            title=f"|{kind}| at {'xyz'[fixed]} = {position:.3g}",
         )
-        fig.colorbar(image, ax=ax, label=f"|{kind}| [{unit}]")
+        fig.colorbar(image, ax=ax, label=f"|{kind}|")
         if "pml" in result:
             from matplotlib.patches import Rectangle
             interior = result["physical_bounds"]
@@ -169,7 +168,7 @@ def draw_frame(frame, view):
     for image, plane in zip(view["images"], frame["planes"]):
         image.set_data(plane.T)
     view["title"].set_text(
-        f"3D FDTD | t = {frame['time'] * 1e9:.2f} ns | "
+        f"3D FDTD (normalized) | t = {frame['time']:.2f} | "
         f"{view.get('boundary_label', 'PEC reflecting walls')}"
     )
 

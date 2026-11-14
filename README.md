@@ -9,9 +9,10 @@ We use separate personal AI accounts, so the files here carry the project
 context between sessions. GitHub does not synchronize our private chats.
 
 Shared documents are grouped in **`docs/`**. **`src/` is the home for project
-code**. The [3D FDTD example](src/fdtd/fdtd_3d.py) contains exactly three Python
-files in `src/fdtd/`: the editable current/run entry point, the Yee solver,
-and plotting. Function docstrings describe inputs, outputs, units and equations.
+code**. The [3D FDTD example](src/fdtd/fdtd_3d.py) separates the editable
+current/run entry point, Yee solver and plotting
+into simple modules in `src/fdtd/`. Function docstrings describe inputs,
+outputs, units and equations.
 
 From the repository root, run with NumPy, Matplotlib and Pillow installed:
 
@@ -19,7 +20,9 @@ From the repository root, run with NumPy, Matplotlib and Pillow installed:
 python src/fdtd/fdtd_3d.py
 ```
 
-A successful run saves PNG and GIF files in the ignored root `outputs/` folder.
+The example uses normalized units: epsilon=mu=1 and c=1/sqrt(mu*epsilon).
+Set the final time and current in `src/fdtd/fdtd_3d.py` using these units.
+A successful run saves PNG and GIF files in `src/outputs/`.
 
 ## Repository layout
 
@@ -37,7 +40,7 @@ docs/
     Proposal_xiaodi_guanlin.pdf
 src/
   README.md                Code placement and run instructions
-  fdtd/                    fdtd_3d.py, plot_fields.py, yee_solver.py
+  fdtd/                    Example, solver and plots
 .github/                   GitHub review ownership and PR template
 ```
 

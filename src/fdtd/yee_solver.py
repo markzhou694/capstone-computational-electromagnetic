@@ -1,26 +1,28 @@
 """Reusable 3D Yee FDTD with PEC walls and optional interior PML layers.
 
-All inputs use SI units. Arrays use axis order (x, y, z).
+Defaults use normalized units with epsilon=mu=1 and c=1/sqrt(epsilon*mu).
+Use consistent units for all inputs. Arrays use axis order (x, y, z).
 For cells=(Nx, Ny, Nz), the staggered field shapes are:
     E: (Nx, Ny+1, Nz+1), (Nx+1, Ny, Nz+1), (Nx+1, Ny+1, Nz)
     H: (Nx+1, Ny, Nz),   (Nx, Ny+1, Nz),   (Nx, Ny, Nz+1)
-See ../docs/API.md for the complete calling contract and runnable examples.
+See solve's docstring for the calling contract.
 This module depends only on NumPy; it does not import example or plotting code.
 """
 
 import numpy as np
 
-C0 = 299_792_458.0
-MU0 = 4 * np.pi * 1e-5 
-EPSILON0 = 1 / (MU0 * C0**2)
+# Normalized background constants (not SI vacuum constants).
+MU0 = 1.0
+EPSILON0 = 1.0
+C0 = 1 / np.sqrt(MU0 * EPSILON0)
 
 
 def curl_e(electric, spacing):
     """Compute curl(E) on Yee faces without changing the input.
 
-    Inputs: electric=(Ex,Ey,Ez), E-shaped arrays [V/m];
-            spacing=(dx,dy,dz), three positive lengths [m].
-    Returns: (curl_x,curl_y,curl_z), H-shaped arrays [V/m^2].
+    Inputs: electric=(Ex,Ey,Ez), E-shaped arrays;
+            spacing=(dx,dy,dz), three positive lengths.
+    Returns: (curl_x,curl_y,curl_z), H-shaped arrays.
     E/H shapes are listed in the module docstring.
     """
     ex, ey, ez = electric
@@ -34,9 +36,9 @@ def curl_e(electric, spacing):
 def curl_h(magnetic, spacing):
     """Compute curl(H) on Yee edges, with zero tangential boundary entries.
 
-    Inputs: magnetic=(Hx,Hy,Hz), H-shaped arrays [A/m];
-            spacing=(dx,dy,dz) [m]. Inputs are not changed.
-    Returns: (curl_x,curl_y,curl_z), E-shaped arrays [A/m^2].
+    Inputs: magnetic=(Hx,Hy,Hz), H-shaped arrays;
+            spacing=(dx,dy,dz). Inputs are not changed.
+    Returns: (curl_x,curl_y,curl_z), E-shaped arrays.
     The boundary entries are placeholders for the PEC electric-field update.
     """
     hx, hy, hz = magnetic
@@ -63,8 +65,8 @@ def curl_h(magnetic, spacing):
 def divergence_e(fields, spacing):
     """Compute the divergence of any E-shaped vector field at interior nodes.
 
-    Inputs: fields=(Fx,Fy,Fz), E-shaped arrays; spacing=(dx,dy,dz) [m].
-    Returns: array of shape (Nx-1,Ny-1,Nz-1), in field units per metre.
+    Inputs: fields=(Fx,Fy,Fz), E-shaped arrays; spacing=(dx,dy,dz).
+    Returns: array of shape (Nx-1,Ny-1,Nz-1), in field units per unit length.
     Accepts E or J; does not change inputs or include wall surface charge.
     """
     fx, fy, fz = fields
@@ -80,8 +82,8 @@ def sample_current(current_density, coordinates, time):
 
     Inputs: current_density(x,y,z,t) -> (Jx,Jy,Jz), or None for zero;
             coordinates=[xyz_for_Ex, xyz_for_Ey, xyz_for_Ez], each xyz a
-            tuple/list of three sparse meshgrid arrays [m]; time is in [s].
-    Returns: (Jx,Jy,Jz), finite E-shaped arrays [A/m^2]. Treat as read-only.
+            tuple/list of three sparse meshgrid arrays; time is normalized.
+    Returns: (Jx,Jy,Jz), finite E-shaped arrays. Treat as read-only.
     Source components may be scalar or broadcastable to their grid.
     Raises ValueError for a wrong component count, shape or non-finite values.
     """
@@ -115,7 +117,7 @@ def sample_current(current_density, coordinates, time):
 def apply_pec(electric):
     """Set tangential E to zero on all six walls, in place.
 
-    Input: electric=(Ex,Ey,Ez), writable E-shaped arrays [V/m].
+    Input: electric=(Ex,Ey,Ez), writable E-shaped arrays.
     Returns: None. Normal components are unchanged.
     """
     ex, ey, ez = electric
@@ -135,7 +137,7 @@ def _pml_coefficients(coordinates, physical_bounds, thickness, sigma_max,
     Return coefficients[component][axis] = (a, b), where
     a = 1 - sigma*dt/(2*epsilon), b = 1 + sigma*dt/(2*epsilon).
     These are Jin (8.5.70)'s alpha,beta multiplied by dt/epsilon.
-    sigma is in S/m; sigma/epsilon is the matched loss rate for BOTH E and H.
+    sigma/epsilon is the matched loss rate for BOTH E and H.
     Each axis depends only on its own coordinate; all three act at corners.
     """
     coefficients = []
@@ -178,9 +180,9 @@ def magnetic_at_e_time(electric, magnetic, spacing, dt, mu=MU0, *,
                        pml_b=None, pml_coefficients=None):
     """Align staggered H with the time of E for output only.
 
-    Inputs: electric at t [V/m], magnetic at t-dt/2 [A/m], using E/H shapes;
-            spacing=(dx,dy,dz) [m], dt [s], permeability mu [H/m].
-    Returns: (Hx,Hy,Hz) at t [A/m], new H-shaped arrays.
+    Inputs: electric at t, magnetic at t-dt/2, using E/H shapes;
+            spacing=(dx,dy,dz), dt, permeability mu.
+    Returns: (Hx,Hy,Hz) at t, new H-shaped arrays.
     Uses H(t) = H(t-dt/2) - dt/(2*mu)*curl(E(t)); inputs are unchanged.
     For PML, supply auxiliary B at t-dt/2 and full-dt H-grid coefficients.
     Predict H(t+dt/2) with the PML equations and average the two half levels.
@@ -201,32 +203,37 @@ def magnetic_at_e_time(electric, magnetic, spacing, dt, mu=MU0, *,
 
 def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
           on_frame=None, frame_every=1, *, epsilon=EPSILON0, mu=MU0,
-          pml_cells=0, pml_order=3, pml_reflection=1e-6, pml_sigma_max=None):
+          pml_cells=0, pml_order=3, pml_reflection=1e-6, pml_sigma_max=None,
+          time_steps=None):
     """Solve 3D Maxwell equations from E=H=rho=0 in a uniform medium.
 
     Inputs
     ------
     bounds : sequence or float array, shape (3, 2)
-        ((xmin,xmax),(ymin,ymax),(zmin,zmax)) [m]; finite min < max.
+        ((xmin,xmax),(ymin,ymax),(zmin,zmax)); finite min < max.
     cells : sequence of three integers
         (Nx,Ny,Nz), each >= 2. Spacing is uniform within each axis.
     end_time : positive float
-        Final simulation time [s]. The last step reaches this time.
+        Final simulation time. The last step reaches this time.
     cfl : float in (0, 1], default 0.8
         Fraction of the 3D CFL time-step limit.
     current_density : callable or None
-        Function (x,y,z,t) -> (Jx,Jy,Jz) [A/m^2]; None means zero.
-        x,y,z are sparse, broadcastable arrays [m]; t is a scalar [s].
+        Function (x,y,z,t) -> (Jx,Jy,Jz); None means zero.
+        x,y,z are sparse, broadcastable arrays; t is a scalar.
         Return real scalars or broadcastable arrays. Called three times per
         step, at the three E grids and at t=(n+1/2)*dt; avoid side effects.
     on_frame : callable or None
         Function (time,electric,centers,magnetic) -> None. Both fields are
-        aligned to time [s]. Called at t=0, every frame_every steps, and T.
+        aligned to time. Called at t=0, every frame_every steps, and T.
         Do not modify its arrays; copy data that must survive the callback.
     frame_every : positive integer, default 1
         Output stride; has no effect on the calculated fields.
+    time_steps : None or positive integer, keyword-only
+        Fix the number of updates, giving dt=end_time/time_steps. Useful for
+        domain comparisons with identical times. Must satisfy the requested
+        cfl limit. None retains the original automatic step calculation.
     epsilon, mu : positive finite scalars, keyword-only
-        Uniform permittivity [F/m] and permeability [H/m]; default vacuum.
+        Uniform permittivity and permeability; both default to 1.
     pml_cells : nonnegative integer, default 0 (original PEC-only solver)
         PML cell count on EACH of the six sides, INSIDE bounds; requires
         2*pml_cells < min(cells). Bounds, spacing and array shapes stay fixed.
@@ -239,24 +246,24 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         Theoretical normal-incidence round-trip AMPLITUDE reflection R0.
         sigma_max=-(m+1)*log(R0)/(2*sqrt(mu/epsilon)*L), L=pml_cells*spacing.
         This is not a bound on numerical reflection or grazing incidence.
-    pml_sigma_max : None, nonnegative scalar, or length-3 sequence [S/m]
+    pml_sigma_max : None, nonnegative scalar, or length-3 sequence
         Optional override of sigma_max (x,y,z). Zero permits a lossless check.
         Other PML settings are ignored when pml_cells=0.
 
     Returns
     -------
     dict with keys:
-        electric: (Ex,Ey,Ez) [V/m]; magnetic: (Hx,Hy,Hz) [A/m], both at T.
-        charge: interior rho [C/m^3], shape (Nx-1,Ny-1,Nz-1).
-        bounds: float array (3,2) [m]; cells: (Nx,Ny,Nz).
-        nodes: (x,y,z) arrays of lengths Nx+1,Ny+1,Nz+1 [m].
-        centers: (xc,yc,zc) arrays of lengths Nx,Ny,Nz [m].
-        spacing: float array (3,) [m]; time,dt: floats [s]; steps: int.
+        electric: (Ex,Ey,Ez); magnetic: (Hx,Hy,Hz), both at T.
+        charge: interior rho, shape (Nx-1,Ny-1,Nz-1).
+        bounds: float array (3,2); cells: (Nx,Ny,Nz).
+        nodes: (x,y,z) arrays of lengths Nx+1,Ny+1,Nz+1.
+        centers: (xc,yc,zc) arrays of lengths Nx,Ny,Nz.
+        spacing: float array (3,); time,dt: floats; steps: int.
         cfl: actual dt/dt_limit; epsilon,mu: the medium parameters.
-        With PML only, also physical_bounds: (3,2) undamped interior [m],
-        and pml: dict with cells, order, thickness [m], sigma_max [S/m],
+        With PML only, also physical_bounds: (3,2) undamped interior,
+        and pml: dict with cells, order, thickness, sigma_max,
         and theoretical_reflection (three normal-incidence amplitudes).
-    Field shapes are listed in the module docstring and ../docs/API.md.
+    Field shapes are listed in the module docstring.
 
     Notes
     -----
@@ -278,9 +285,14 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     if not np.isfinite(cfl) or not 0 < cfl <= 1:
         raise ValueError("cfl must satisfy 0 < cfl <= 1.")
     if not np.isfinite(end_time) or end_time <= 0:
-        raise ValueError("end_time must be positive and finite, in seconds.")
+        raise ValueError("end_time must be positive and finite.")
     if not isinstance(frame_every, (int, np.integer)) or frame_every < 1:
         raise ValueError("frame_every must be a positive integer.")
+    if time_steps is not None and (
+        isinstance(time_steps, (bool, np.bool_))
+        or not isinstance(time_steps, (int, np.integer)) or time_steps < 1
+    ):
+        raise ValueError("time_steps must be None or a positive integer.")
     for name, value in (("epsilon", epsilon), ("mu", mu)):
         if np.ndim(value) != 0 or not np.isfinite(value) or value <= 0:
             raise ValueError(f"{name} must be a positive finite scalar.")
@@ -316,7 +328,7 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         np.meshgrid(x, yc, z, indexing="ij", sparse=True),
         np.meshgrid(x, y, zc, indexing="ij", sparse=True),
     )
-    # alternating E/H shapes are listed in the module docstring and ../docs/API.md.
+    # Alternating E/H shapes are listed in the module docstring.
     ex = np.zeros((nx, ny + 1, nz + 1))
     ey = np.zeros((nx + 1, ny, nz + 1))
     ez = np.zeros((nx + 1, ny + 1, nz))
@@ -330,7 +342,11 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     wave_speed = 1 / np.sqrt(epsilon * mu)
     dt_limit = 1 / (wave_speed * np.sqrt(np.sum(1 / spacing**2)))
     steps = int(np.ceil(end_time / (cfl * dt_limit)))
+    if time_steps is not None:
+        steps = int(time_steps)
     dt = end_time / steps
+    if dt > cfl * dt_limit * (1 + 8 * np.finfo(float).eps):
+        raise ValueError("time_steps is too small to satisfy the requested CFL limit.")
     alignment = {}
     if pml_cells:
         thickness = pml_cells * spacing

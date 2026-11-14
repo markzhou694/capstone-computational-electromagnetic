@@ -1,6 +1,92 @@
 # Shared project status
 
-Last reviewed: **2026-11-06**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+Last reviewed: **2026-11-14**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+
+## Normalized FDTD — 2026-11-14
+
+Xiaodi authorized normalized units and a local Git commit. Codex updated
+the four FDTD modules and their documentation on local main: epsilon=mu=1,
+c=1/sqrt(mu*epsilon), T=10, custom-source duration 6, frequency 0.5 and
+amplitude 1. All times, coordinates, sources and plot labels use consistent
+normalized units. This is a new normalized example, not an equivalent
+rescaling of the previous SI run. No push requested.
+Historical numerical checks below used the units/settings stated there.
+
+Verification passed: equivalent SI/normalized 12^3 PEC and PML runs agree
+within 8e-16 relative error in E/H/charge; a nonunit medium (epsilon=4, mu=9)
+uses c=1/6. Small PML/reference runs retain common spacing, time and the
+physical region, agreeing within 3e-15 at early time. The 60^3 default
+physics setup completed 743 steps to T=10 with finite fields and a physical
+interior Gauss residual below 4.3e-15. E and H PNG/GIF exports were checked.
+The full-grid verification animation samples every 20 steps (39 frames);
+the saved code retains FRAME_EVERY=1. Verification plots are in the ignored
+`src/outputs/normalized_verification/` directory. The existing five-times
+plot scale is retained; the final weak E field is nearly dark on that scale.
+These checks validate consistent units and execution, not convergence or a
+full-duration reference-error bound. Existing tracked GIF changes/deletions
+remain outside the source/documentation commit.
+
+## Physical domain convention — 2026-11-14
+
+Xiaodi defines the physical domain as the interior enclosed by the inner
+PML interfaces, excluding the absorbing PML cells. This is the region of
+interest. Compare the small PML run and larger reference over this same
+physical region, using matching native Yee positions, grid spacing and
+physical time. Do not include PML cells in the error norm.
+
+For a centered computational cube [-A,A]^3, spacing h and p PML cells per
+side, the physical domain is [-b,b]^3 with b=A-p*h. Derive these bounds
+from the current setup each time. The larger reference extends outside
+this region while the comparison region stays fixed. The solver already
+reports physical_bounds; fdtd_with_pml returns full-grid E/H, so
+comparison cropping remains a future step.
+
+## Minimal timing and PML run — 2026-11-14
+
+At Xiaodi's request, `src/fdtd/err_analysis.py` has three simple functions.
+`simulation_time(a,b,B,c,dt)` returns a grid-aligned stopping time with one
+safety step plus the forward H half-step before the reflection-arrival bound.
+`fdtd_with_pml(T,dt)` uses fdtd_3d's grid and PML parameters, always passes its
+custom_current and returns the solver result dictionary with native E/H
+tuples at T, physical bounds, grid/timing/material/PML information, and
+physical_lengths=(Lx,Ly,Lz) in normalized length units excluding the PML.
+It fixes the number of steps to preserve dt; the solver checks CFL and
+already centers H in time.
+T must be a positive integer multiple of dt, and PML_CELLS must be positive.
+There are no plots, additional helper modules or automatic runs on import.
+Previously verified a 50^3 run with the then-current PML-8 setting for 229 steps at
+T=14.0923076923 ns and dt=0.0615384615385 ns. All six returned arrays are
+finite and nonzero, with the expected native Yee shapes. The custom source
+and PML are used even when both example selector flags are false. A separate
+zero-current PML run preserves exactly zero E/H; invalid timing, disabled
+PML and unstable CFL inputs are rejected. These checks validate this run
+interface, not a new accuracy or reflection study.
+The renamed function's returned information was checked on a 10x12x14
+rectangular PML run: physical side lengths [1.2,2,3] m matched the inner
+PML interfaces; grid/time information and full-grid E/H shapes were verified.
+
+`fdtd_reference(pml_result,B)` runs on a larger centered cube without PML,
+with PEC outer walls. It rounds the requested half-width B outward by whole
+cells, contains the entire original computational cube, and preserves h,
+dt, final time, material constants and custom_current. It rejects a box
+too small for the existing safe-time condition. Returned physical_bounds
+and physical_lengths retain the original region of interest; padding_cells
+records the enlargement. Fields still cover the full reference grid.
+Small 20^3/24^3 and 21^3/25^3 runs verified matching native Yee coordinates
+and early physical-domain E/H agreement within 3e-15 relative difference.
+This is an early-time consistency check, not a full-duration accuracy study.
+
+## FDTD cleanup — 2026-11-14
+
+Xiaodi requested removal of the error-analysis feature and all its project
+files. Its script, tests, generated results and dedicated plot function
+have been removed. The source/current settings, Yee solver and standard
+PNG/GIF plotting remain. Earlier experiment records are historical in
+TIMELINE.md; their deleted outputs are no longer available in this project.
+
+The current solver includes PML and time-centered H. Older no-PML and
+material statements below describe their historical observation dates.
+No publication was requested.
 
 ## Current FDTD layout — 2026-11-06
 
@@ -84,6 +170,7 @@ or cost comparisons that omit history storage.
 
 | Task | Human owner | Branch / files | State and next step |
 | --- | --- | --- | --- |
+| Normalize FDTD and save locally | Xiaodi; Codex assisting | `main`; `src/fdtd/`, READMEs, status and timeline | Implemented and verified for local Git save; no push authorized |
 | Documentation-only collaboration setup | Xiaodi; Codex assisting | `main`; documents and proposal | Published and remote manifest verified; Guanlin accepts invitation |
 | Group documents and establish source directory | Xiaodi; Codex assisting | `main`; root entry points, `docs/`, `src/README.md`, review configuration | Applied directly to main under Xiaodi's explicit instruction; [PR #1](https://github.com/markzhou694/capstone-computational-electromagnetic/pull/1) contains the original organization history |
 | Allow human-authorized main updates | Xiaodi; Codex assisting | `main`; rules, collaboration guide, README, PR template, timeline; GitHub branch protection | Mandatory peer review removed at Xiaodi's direction; humans retain control over publication and rule changes |
