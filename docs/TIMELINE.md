@@ -413,3 +413,10 @@ See COLLABORATION.md for the recording and correction procedure.
 - Visual verification: Inspected the original GIF, representative previews, saved GIF frames at t=1.002 and 3.328 showing opposite signs, and the final PNG at T=10. Weak late fields and vector directions are visible; colorbar labels do not overlap. Interim renders were stopped after review to refine arrows/ticks and incorporate the changed source amplitude; temporary rendering preserved the prior complete output until successful replacement. Original output backups remain under /private/tmp/fdtd-visual-before-20261114.
 - Limitations: Arrow lengths intentionally use a nonlinear, per-frame display scale; compare fixed color values and the max|F| readout for absolute amplitudes over time. This is visualization validation, not a new convergence or physical-accuracy study.
 - Next: Open the standard updated GIF or rerun fdtd_3d.py. Adjust only SLICE_COMPONENT and ARROW_LENGTH in plot_fields.py for the chosen component and displayed arrow size.
+
+## 2026-11-14T14:04:34-05:00 | dark-slice-style
+
+- Changed/recorded by: Codex for Xiaodi's request for black backgrounds and shorter plot labels.
+- Files: src/fdtd/plot_fields.py, src/README.md, docs/PROJECT_STATUS.md and this timeline. Blue/black/orange signed colors replace blue/white/red. Short titles remove the peak readout; fixed symlog color values still show amplitudes. Spatial axes use meters under the user's stated unit convention.
+- Verification: Rendered PNG/GIF previews using previously verified cached 50^3, amplitude-10 fields; checked zero maps to black and visually inspected active.png. Python syntax and git diff checks passed. No physics calculation or standard output regeneration was performed. Preview files are in src/outputs/dark_preview/.
+- Preserved: Independent fdtd_3d.py edits (100^3, PML-15, amplitude 1), existing tracked GIF modifications and two old GIF deletions. No solver/source edits, no push.

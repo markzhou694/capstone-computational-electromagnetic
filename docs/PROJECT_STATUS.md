@@ -2,6 +2,17 @@
 
 Last reviewed: **2026-11-14**. Humans: **Xiaodi Zhou and Guanlin Wang**.
 
+## Dark slice style — 2026-11-14
+
+Restored black zero-field slice backgrounds, with blue negative and orange
+positive values. Titles, axes and colorbar labels are shorter; fixed symlog
+colors and scaled arrows are retained. Spatial axes use meters under the
+user's convention; time remains in solver units (1 m / vacuum light speed).
+Rendered and visually inspected cached 50^3 frames in
+`src/outputs/dark_preview/`; no new simulation or standard output regeneration.
+The current independent 100^3/PML-15 source settings are preserved. The older
+visibility verification below describes the previous style and run.
+
 ## Field animation visibility — 2026-11-14
 
 Xiaodi requested clearer oscillations and vector lengths. Codex updated

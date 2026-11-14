@@ -93,7 +93,7 @@ def field_view(result, maximum, kind="E", component=SLICE_COMPONENT):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.colors import SymLogNorm
+    from matplotlib.colors import SymLogNorm, LinearSegmentedColormap
 
     if kind not in ("E", "H"):
         raise ValueError('kind must be "E" or "H".')
@@ -104,6 +104,9 @@ def field_view(result, maximum, kind="E", component=SLICE_COMPONENT):
     bounds, centers = result["bounds"], result["centers"]
     maximum = max(maximum, 1e-30)
     color_scale = SymLogNorm(linthresh=0.01*maximum, vmin=-maximum, vmax=maximum)
+    colors = LinearSegmentedColormap.from_list(
+        "signed_dark", ["#73cfff", "#000000", "#ffb34d"], N=257,
+    )
     fig = plt.figure(figsize=(10, 8), layout="constrained")
     vector_ax = fig.add_subplot(2, 2, 1, projection="3d")
     sampled_centers = []
@@ -112,8 +115,8 @@ def field_view(result, maximum, kind="E", component=SLICE_COMPONENT):
     positions = np.meshgrid(*sampled_centers, indexing="ij")
     vector_ax.set(
         xlim=bounds[0], ylim=bounds[1], zlim=bounds[2],
-        xlabel="x", ylabel="y", zlabel="z",
-        title=f"3D {kind} vectors (sqrt lengths; rescaled)",
+        xlabel="x (m)", ylabel="y (m)", zlabel="z (m)",
+        title=f"{kind} vectors (scaled)",
     )
     lengths = bounds[:, 1] - bounds[:, 0]
     vector_ax.set_box_aspect(lengths)
@@ -126,15 +129,15 @@ def field_view(result, maximum, kind="E", component=SLICE_COMPONENT):
         blank = np.zeros((len(centers[b]), len(centers[a])))
         image = ax.imshow(
             blank, origin="lower", extent=(*bounds[a], *bounds[b]),
-            cmap="RdBu_r", norm=color_scale, aspect="equal",
+            cmap=colors, norm=color_scale, aspect="equal",
         )
         position = centers[fixed][len(centers[fixed]) // 2]
         ax.set(
-            xlabel=f"{'xyz'[a]}", ylabel=f"{'xyz'[b]}",
-            title=f"{kind}{component} at {'xyz'[fixed]} = {position:.3g}",
+            xlabel=f"{'xyz'[a]} (m)", ylabel=f"{'xyz'[b]} (m)",
+            title=f"{'xyz'[fixed]} = {position:.3g} m",
         )
         fig.colorbar(
-            image, ax=ax, label=f"{kind}{component} (fixed symlog scale)",
+            image, ax=ax, label=f"{kind}{component} (symlog)",
             ticks=[-maximum, -0.01*maximum, 0, 0.01*maximum, maximum], format="%.2g",
         )
         if "pml" in result:
@@ -157,8 +160,7 @@ def field_view(result, maximum, kind="E", component=SLICE_COMPONENT):
         "title": fig.suptitle(""),
         "kind": kind,
         "component": component,
-        "boundary_label": ("PML + PEC | dashed: physical interior"
-                           if "pml" in result else "PEC reflecting walls"),
+        "boundary_label": ("PML" if "pml" in result else "PEC"),
     }
 
 
@@ -169,7 +171,7 @@ def draw_frame(frame, view):
     Returns: None. Updates view's artists and arrows in place; does not
     change the frame. Frame and view must use the same grid, kind and component.
     Arrow length = longest_length * sqrt(|F| / largest_sampled_|F|).
-    This makes weak vectors visible. Colors and the peak readout retain amplitudes.
+    This makes weak vectors visible. Fixed colorbar values retain amplitudes.
     """
     if frame["kind"] != view["kind"] or frame["component"] != view["component"]:
         raise ValueError("Frame and view must use the same field kind and component.")
@@ -191,9 +193,8 @@ def draw_frame(frame, view):
     for image, plane in zip(view["images"], frame["planes"]):
         image.set_data(plane.T)
     view["title"].set_text(
-        f"3D FDTD (normalized) | t = {frame['time']:.3f} | "
-        f"max |{frame['kind']}| = {frame['maximum']:.3e}\n"
-        f"{view.get('boundary_label', 'PEC reflecting walls')}"
+        f"{frame['kind']}{frame['component']} | t = {frame['time']:.3f} | "
+        f"{view['boundary_label']}"
     )
 
 
