@@ -420,3 +420,116 @@ See COLLABORATION.md for the recording and correction procedure.
 - Files: src/fdtd/plot_fields.py, src/README.md, docs/PROJECT_STATUS.md and this timeline. Blue/black/orange signed colors replace blue/white/red. Short titles remove the peak readout; fixed symlog color values still show amplitudes. Spatial axes use meters under the user's stated unit convention.
 - Verification: Rendered PNG/GIF previews using previously verified cached 50^3, amplitude-10 fields; checked zero maps to black and visually inspected active.png. Python syntax and git diff checks passed. No physics calculation or standard output regeneration was performed. Preview files are in src/outputs/dark_preview/.
 - Preserved: Independent fdtd_3d.py edits (100^3, PML-15, amplitude 1), existing tracked GIF modifications and two old GIF deletions. No solver/source edits, no push.
+
+## 2026-11-18T17:45:45-05:00 | length-based-pml-paired-runs
+
+- Owner: Xiaodi; actor/recorder: Codex. Base main 28d7e1a. User requests adapting analysis to their length-based PML and adding the next function to run both domains.
+- Observed: fdtd_3d.py contains pml_length_to_cells and PML_length; current independent edits set 50^3 and length 0.3. Existing two src/fdtd GIF deletions and src/outputs/fdtd_3d_current.gif modification are preserved. No attribution inferred beyond the user's stated PML change. Remote fetch failed (github.com DNS); remote state not verified.
+- Changed: src/fdtd/err_analysis.py recomputes PML cells from current length/settings. Added run_simulations(B, dt), which derives the actual physical interior, rounds reference bounds outward, computes the safe time window and runs both wrappers. Returns final fields and interval metadata; history sampling/error calculation remains next. Updated docs/PROJECT_STATUS.md and this timeline. Solver, source and plotting code unchanged.
+- Verification: sci Python, in-memory 12^3/PML-length 0.2 settings, requested B=1.4, dt=0.05; reference 18^3 with actual B=1.5. Window [0.45,2.0], continuum return bound 2.083333333333333. Verified matching spacing/nodes/time, finite custom-current E/H, strict safety inequality, and length conversion despite a deliberately stale PML_CELLS value. Zero-current E/H remained exactly zero in both runs. git diff --check passed. No full configured run or new convergence claim. No push.
+
+## 2026-11-18T17:50:46-05:00 | restore-paired-run-edit
+
+- Codex for Xiaodi: current src/fdtd/err_analysis.py and supplied attachment had reverted to the old PML_CELLS wrapper and lacked run_simulations; cause/actor unknown. Restored the previously verified length conversion and paired-run function while preserving all newly added comparison comments. Reimported saved file and verified a 12^3/18^3 zero-source run, stale-cell override, equal dt and strict time margin. No other source files changed.
+
+## 2026-11-18T17:52:16-05:00 | annotate-paired-run-geometry
+
+- Codex for Xiaodi: annotated run_simulations in src/fdtd/err_analysis.py line by line in Chinese. Named actual pml_length explicitly and documented B > b + pml_length = A; retained direct B > A comparison to avoid floating-point reconstruction. Preserved other working changes. Checked rejection of B=0.9 and B=1.0 for A=1, and a zero-source 12^3/18^3 paired run with equal final time. No full simulation or plot changes.
+
+## 2026-11-18T17:59:20-05:00 | standalone-analysis-entry
+
+- Owner Xiaodi; actor/recorder Codex. Translated run_simulations annotations in src/fdtd/err_analysis.py to English and added main/__main__ so analysis runs without the ordinary simulation/export. Added REFERENCE_HALF_WIDTH=1.5 to src/fdtd/fdtd_3d.py alongside shared parameters. dt follows CFL; T_end follows the reference safety bound. Updated docs/PROJECT_STATUS.md and this timeline.
+- Preserved independent source edits and existing GIF modifications/deletions. Observed an additional PML-length print in fdtd_3d during verification; authorship unknown, preserved.
+- Verified actual __main__ via runpy with in-memory 12^3, PML length 0.2, requested B=1.4: reference 18^3, dt=0.0673575, observation [0.471503,1.95337], finite E/H, equal spacing/time and strict safety margin. Guards confirmed ordinary fdtd_3d.main and plot export were not called. git diff --check passed. Full configured simulation not run; histories/errors not yet implemented. No push.
+
+## 2026-11-18T18:07:34-05:00 | final-comparison-png
+
+- Codex for Xiaodi: added save_final_comparison to src/fdtd/plot_fields.py and called it from src/fdtd/err_analysis.py main. Saves src/outputs/pml_reference_final.png: matching native Ez xy slices inside the physical region, common linear signed black-centered colors, short labels. No spatial averaging, error calculation or GIF. Updated docs/PROJECT_STATUS.md and this timeline; unrelated work preserved.
+- Verification: executed main with temporary in-memory 12^3/PML-length 0.2, B=1.4 settings, reference 18^3. Checked shared node/center coordinates and visually inspected the generated PNG at T=1.95337, z=0.0833. This is a small-grid preview, not a full configured run. git diff --check passed.
+
+## 2026-11-18T18:11:25-05:00 | print-actual-analysis-geometry
+
+- Codex for Xiaodi: added three print statements in src/fdtd/err_analysis.py main for actual PML thickness, reference half-width B and physical half-width b, read directly from solver result metadata. Syntax and git diff --check passed; no simulation rerun for this display-only change. Preserved unrelated edits.
+
+## 2026-11-18T18:15:46-05:00 | relative-error-time-history
+
+- Codex for Xiaodi: updated src/fdtd/err_analysis.py with optional solver callbacks, relative_l2_error, temporary physical-domain PML snapshots and per-step E/H relative errors during the observation window. Both simulations still start at zero. main saves numerical CSV and calls new save_error_history in src/fdtd/plot_fields.py, replacing the final raw-field plot call. Existing final-plot helper/output retained; unrelated source/GIF changes preserved. Updated docs/PROJECT_STATUS.md and this timeline.
+- Checks: known 10-percent field scaling gives 0.1, identical fields give zero, zero reference norm gives NaN. On 12^3/18^3 custom-current runs, sampling endpoints/stride matched and final history errors matched an independent final-field crop/norm calculation. No spatial averaging. Final-time E/H alignment remains the solver's responsibility.
+- Actual configured run: 50^3 PML / 76^3 reference, actual thickness 0.32, B=1.52, b=0.68, dt=0.0161658; 103 finite samples over [0.43647680350735707, 2.085389172312928]. Final E/H relative errors [7.645353395887044e-06, 4.085793767609731e-05]; peak E/H [1.7532811821045003e-05, 4.085793767609731e-05]. Saved src/outputs/pml_error_history.png/.csv; visually inspected the black-background two-curve plot. No claim of total discretization accuracy or validation against a still larger reference. No push.
+
+## 2026-11-18T18:47:21-05:00 | peak-normalization
+
+- Codex for Xiaodi: src/fdtd/err_analysis.py now collects absolute differences and reference norms, then normalizes by separate E/H maxima over sampled observation times. Added explicit formulas and norm definition in English comments. CSV retains absolute/reference histories. src/fdtd/plot_fields.py uses the new label, preserving independently selected blue/red colors. Updated docs/PROJECT_STATUS.md and this timeline; unrelated source changes preserved.
+- Verified small 12^3/18^3 nonzero-source histories against fixed-peak division, known 10-percent scaling and zero-source undefined-relative behavior. Reused the previous full-size diagnostic norms in /private/tmp/pml_norm_diagnostic.npz to regenerate src/outputs/pml_error_history.png/.csv and visually checked the plot. No full FDTD rerun. Peak E/H 6.043785576024414e-6 / 6.523538677579468e-6.
+- Scoped diff checks passed. Full diff check reports preexisting trailing whitespace in independently edited src/fdtd/fdtd_3d.py; left untouched. No push.
+
+## 2026-11-18T19:18:56-05:00 | timing-progress-flops
+
+- Owner Xiaodi; actor/recorder Codex. Added src/fdtd/run_metrics.py with print_progress, timed_call, estimate_fdtd_flops and timed_solve. Updated src/fdtd/yee_solver.py with optional step progress hook; fdtd_3d.py and err_analysis.py now use timed solves, and plot_fields.py exposes GIF rendering progress. Updated src/README.md, docs/PROJECT_STATUS.md and this timeline. User's current 100^3/source edits, color changes and tracked GIF edits/deletions preserved; no push.
+- Metrics: wall time includes setup/source/callback work; analytic FLOP count includes core update/curl/charge and H alignment arithmetic only, with explicit conventions/exclusions. Reports ordinary solve/export separately, PML/reference separately and paired total. No hardware-throughput claim.
+- Verification: 8^3 PEC and PML-2, T=0.1, 4 steps gave bitwise-identical E/H before/after instrumentation; progress sequence was 0..4. Hand-count 2^3 one-step estimates matched 706 PEC / 1984 PML operations (one output). Paired 12^3/18^3, 40-step run completed with per-run metrics. Actual two-frame PNG/GIF export to /private/tmp/fdtd_metrics_preview passed; observed solve+callbacks about 0.001 s and export 0.929 s for this tiny test only. Initial ordinary test used a stale in-memory PML_CELLS after reducing grid size and was rejected correctly; setting the test cell count consistently resolved it. No full configured benchmark.
+
+## 2026-11-19T00:15:32-05:00 | three-step-safety-reserve
+
+- Codex for Xiaodi: changed total safety reserve in src/fdtd/err_analysis.py from 1.5*dt to 3*dt, including the forward H half-step; updated corresponding comments/docstring. Verified strict bound and maximal permissible step for an exact-grid case and the B=5, h=0.025 case. No FDTD rerun or plot regeneration; prior outputs remain from the previous reserve. Three steps are a chosen margin, not proof of absent numerical boundary contamination.
+
+## 2026-11-19T00:24:12-05:00 | pml-field-norm-columns
+
+- Codex for Xiaodi: added pml_L2_E and pml_L2_H to run_simulations results and appended CSV columns in src/fdtd/err_analysis.py. They are unweighted native-Yee PML field norms inside the shared physical region, using the same definition as reference norms. Peak-normalized error formulas unchanged.
+- Verified main with in-memory 12^3/18^3 settings; output redirected to /private/tmp/pml_norm_columns_check to preserve existing full-run artifacts. Checked final PML norms against independent final-array sums, all nine CSV columns and existing peak-error formula. No full run or replacement of user's outputs. Scoped diff check passed.
+
+## 2026-11-19T22:34:28-05:00 | log-error-reference-norm-plot
+
+- Actor/recorder: Codex for Xiaodi; branch main, base 28d7e1a. User requested an additional log-scale error/reference norm figure.
+- Reconciliation: existing changes in docs/PROJECT_STATUS.md, docs/TIMELINE.md, src/README.md, src/fdtd/err_analysis.py, src/fdtd/fdtd_3d.py, src/fdtd/plot_fields.py, src/fdtd/yee_solver.py, untracked src/fdtd/run_metrics.py, deleted src/fdtd/fdtd_3d_H_pulse_current.gif and src/fdtd/fdtd_3d_current.gif, and modified src/outputs/fdtd_3d_current.gif were preserved. Current analysis safety is 50*dt (user-described edit); other intervening authorship is not inferred.
+- Changed src/fdtd/plot_fields.py: added save_error_norms with separate E/H log panels, error and reference norms, dark background, and gaps for zero/nonfinite values. Labels explicitly describe unweighted discrete L2 norms.
+- Changed src/fdtd/err_analysis.py: main calls this function, reports its path and includes its time in plot_seconds. Existing error plot/CSV formulas unchanged. Updated docs/PROJECT_STATUS.md and this timeline.
+- Verification: parsed both Python files; rendered src/outputs/pml_error_norms.png from the existing 356-row CSV (t=0.17512958165418652..4.957514311441587), and visually checked labels, curves and log axes. No FDTD rerun; no scientific validation of the existing CSV implied. Plot-module diff whitespace check passed.
+- Limitations: git fetch failed because github.com could not resolve. No commit or push; next ordinary analysis run generates both figures automatically.
+
+## 2026-11-20T00:03:58-05:00 | spherical-field-extraction
+
+- Actor/recorder: Codex for Xiaodi; main at 28d7e1a. User authorized clean English-commented field extraction and plotting. Existing dirty paths recorded in the preceding entry remain preserved; no attribution of additional intervening edits is inferred.
+- Added src/fdtd/field_extraction.py: sphere_points uses CUSTOM_CENTER/RADIUS, validates strict source enclosure and physical containment, generates latitude rings plus one sample per pole. trilinear samples each native Yee component without cell-center averaging or extrapolation; extract_sphere returns Cartesian E/H and geometry at the solver result time. main previews geometry only.
+- Updated src/fdtd/plot_fields.py with save_sphere_samples; generated src/outputs/sphere_samples.png with 514 points, R=0.1875 and physical half-width 0.275 from current settings. English comments describe non-equal-area samples and single-snapshot scope. Updated docs/PROJECT_STATUS.md and this log.
+- Verified all six staggered coordinate layouts reproduce a multilinear analytic field within 5e-15; unique points, poles, sphere radius, invalid radius rejection and extrapolation rejection passed. Extracted finite (514,3) E/H from an actual 12^3, two-step custom-current PML solve. Generated and visually inspected the configured geometry figure; scoped whitespace check passed. No full configured solve or time-history recording.
+- Limitations: snapshot extraction requires unchanged source metadata; surface quadrature weights and history storage are not implemented. Remote access remains unavailable from prior DNS failure; no commit or push.
+
+## 2026-11-20T01:26:51-05:00 | spatial-material-functions-custom-source
+
+- Actor/recorder Codex for Xiaodi, main base 28d7e1a. User explicitly requested material functions in fdtd_3d and only custom_current. Preserved current grid, source formula/parameters, PML settings and unrelated plot/GIF edits. Removed alternative source definitions/settings as authorized.
+- Files: src/fdtd/fdtd_3d.py, src/fdtd/yee_solver.py, src/fdtd/err_analysis.py, new src/tests/test_material_functions.py, src/README.md, docs/PROJECT_STATUS.md, docs/TIMELINE.md.
+- epsilon/mu callables sampled once on native E/H grids; local division in both PEC/PML updates and H alignment. Positive-real validation, homogeneous PML checks, conservative CFL from material minima, material-array metadata. Default functions return 1. Existing scalar solve calls remain valid. Corrected the custom-current formula comment to match the unchanged implemented waveform.
+- Analysis consumes the new material functions and rejects nonuniform material timing instead of using vacuum constants. Its existing 50*dt safety parameter was not changed. Whitespace cleaned in the two edited entry points.
+- Verification: four unittest cases pass (six-grid material sampling, local E update/H alignment, div(epsilon E)=rho and div(mu H)=0, zero-loss PML equivalence, uniform scalar/callable equivalence, invalid material/PML/CFL rejection). Compared uniform PEC/PML solutions against pre-edit solver saved temporarily; agreement within 1e-14 relative/1e-15 absolute, new scalar versus callable bitwise equal.
+- Integration: 12^3 ordinary PNG/GIF export to /private/tmp/material_function_check; 152-step uniform 12^3/36^3 analysis pair; 20-step heterogeneous nonzero-loss PML finite; sphere extraction compatible; nonuniform analysis guard verified. Scoped diff whitespace checks pass. No configured 90^3 rerun, no claim of dielectric-interface convergence.
+- Remote still inaccessible from earlier DNS failure. No commit or push. Next: define/test an actual dielectric geometry if requested.
+
+## 2026-11-20T01:50:22-05:00 | both-fields-single-solve
+
+- Actor/recorder Codex for Xiaodi; branch main, base 28d7e1a. User requested E and H plots together. Preserved current material/source/grid settings and unrelated changes.
+- Changed src/fdtd/fdtd_3d.py to record both fields in one solve and export separately; main returns paths keyed by E/H. Changed src/fdtd/plot_fields.py to use distinct fdtd_3d_E and fdtd_3d_H PNG/GIF names. Updated status and this timeline.
+- Verified an in-memory 12^3, two-step uniform PML run in /private/tmp/fdtd_both_fields: four distinct readable artifacts, both GIFs three frames. Scoped whitespace check passed. No configured large simulation, no removal of previous outputs, no commit or push.
+
+## 2026-11-20T03:18:14-05:00 | dielectric-bunny-example
+
+- Actor/recorder Codex for Xiaodi; main base 28d7e1a. Added requested separate bunny entry point. Observed existing 90^3, T_END=2, PML length .4, sphere epsilon6 settings and deleted old output GIF; authorship of intervening edits unspecified, preserved all. Other dirty paths remain as previously logged.
+- Added src/fdtd/fdtd_3d_complex_geometric.py, src/fdtd/assets/bunny.off and assets/README.md. Closed libigl tutorial mesh, native E-grid containment masks, epsilon4/mu1, source outside bunny, one-cell homogeneous collar. Reuses shared setup without mutating it or changing solver.
+- Added save_dielectric_geometry to src/fdtd/plot_fields.py; generated src/outputs/bunny/bunny_geometry.png and visually checked. Updated src/README.md, docs/PROJECT_STATUS.md and this timeline. E/H exports are separate in bunny output directory.
+- Installed trimesh5.2.1 and rtree1.4.1 in sci after sandbox networking failed; approved escalated download/install succeeded. Git fetch failed DNS; no commit/push.
+- Validation: downloaded mesh has 3485 vertices/6966 faces, watertight positive volume. Known-box inside/outside epsilon check passed. In-memory 40^3, PML8, T=.15, source radius .08 test completed eight steps with finite nonzero E/H, both epsilon values and four readable PNG/GIF artifacts in /private/tmp/bunny_fdtd_check. PML placement rejection passed. Four existing material unittests passed. Scoped whitespace check passed.
+- No full90^3 solve, interface convergence or scattering accuracy claim. The preview is a smooth mesh; numerical material remains staircase sampled.
+
+## 2026-11-20T03:31:22-05:00 | bunny-field-overlays
+
+- Codex for Xiaodi; main base 28d7e1a. User requested clearer bunny shape in E/H plots. Observed BUNNY_EPSILON now 2 (intervening authorship unspecified); preserved this and other settings.
+- src/fdtd/plot_fields.py: optional slice_center sampling with recorded exact coordinates; translucent mesh in vector panel, gold true mesh-plane intersections in slices, physical-region limits for bunny, brighter bunny vectors and dark export style. src/fdtd/fdtd_3d_complex_geometric.py passes bunny-centered slices and mesh metadata for rendering only. Solver unchanged. Updated docs/PROJECT_STATUS.md and this timeline.
+- Verified 40^3, PML8, T=.8, 40-step small run; four readable outputs, five frames per GIF in /private/tmp/bunny_overlay_check. Visually inspected E PNG. Constant-field and default/custom slice-coordinate checks passed; scoped diff check passed. Initial section-path method required unavailable networkx; replaced with direct mesh-plane segments, no added dependency.
+- Full configured run and existing outputs not regenerated. Mesh outline is continuous input geometry, not the exact staircase material boundary. No commit/push.
+
+## 2026-11-20T10:59:38-05:00 | publish-src-authorized
+
+- Actor/recorder Codex for Xiaodi; main base 28d7e1a. User explicitly requested pushing src files to GitHub. Remote fetch succeeded with network permission; origin/main equals local base, no unpublished prior commits.
+- Publishing current src/README.md, src/fdtd/err_analysis.py, fdtd_3d.py, plot_fields.py, yee_solver.py, field_extraction.py, run_metrics.py, fdtd_3d_complex_geometric.py, assets/README.md, assets/bunny.off and src/tests/test_material_functions.py, plus existing deletions of src/fdtd/fdtd_3d_H_pulse_current.gif, src/fdtd/fdtd_3d_current.gif and src/outputs/fdtd_3d_current.gif. Include accumulated docs/PROJECT_STATUS.md and docs/TIMELINE.md per project recording rules. Ignored generated outputs remain local.
+- Observed current grid120^3, T_END1.5, reference half-width1.5, bunny epsilon2; preserved intervening edits without assigning authorship. All four material unittests pass, Python syntax parse passes, diff whitespace check passes. Prior smoke/plot checks remain documented above; no full current run. Analysis still homogeneous-only, safety50dt (older three-step docstring is stale).
+- Source/mesh publication authorized by this request. No history rewriting or force push.

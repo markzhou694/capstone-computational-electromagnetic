@@ -1,12 +1,12 @@
 """Example: set parameters, define a current, solve, and save PNG/GIF.
 
-Equations solved (uniform epsilon, mu; normalized units):
+Equations solved (stationary isotropic epsilon(x,y,z), mu(x,y,z); normalized units):
     epsilon * dE/dt = curl(H) - J
     mu      * dH/dt = -curl(E)
     drho/dt        = -div(J)
 Initial E=H=rho=0; tangential E=0 on the six PEC walls.
 
-To build your own J: set USE_CUSTOM_CURRENT=True and edit custom_current.
+Edit epsilon, mu and custom_current below to define the medium and source.
 Start with J = amplitude * spatial_shape * time_waveform * direction.
 For other simulations, call yee_solver.solve directly.
 """
@@ -14,8 +14,9 @@ For other simulations, call yee_solver.solve directly.
 from pathlib import Path
 import numpy as np
 import yee_solver
-from yee_solver import solve
+from run_metrics import timed_solve, timed_call, print_progress
 from plot_fields import sample_fields, save_results
+
 
 
 ## PML_length to PML_CELLS conversion: PML_length = PML_CELLS * d, where d is the cell size.
@@ -31,7 +32,8 @@ def pml_length_to_cells(pml_length, bounds, cells):
         raise ValueError("Bounds and cells must have three dimensions.")
     d = [(b[1] - b[0]) / n for b, n in zip(bounds, cells)] #  cell sizes in x,y,z
     min_d = min(d)
-    pml_cells = int(np.ceil(pml_length / min_d)) # determine the number of cells needed for the PML length
+    pml_cells = int(np.ceil(pml_length / min_d)) # determine the number of cells needed for the PML length, use ceil to round up to the nearest whole cell
+    print("actual PML length:", pml_cells * min_d, "normalized units; cell size:", min_d)
     if pml_cells * 2 >= min(cells):
         raise ValueError("PML length too large for the grid; reduce it.")
     return pml_cells
@@ -39,91 +41,77 @@ def pml_length_to_cells(pml_length, bounds, cells):
 
 # ===== 1. Parameters ===== # very important!
 
-# Normalized length and time. Material defaults are in yee_solver.py:
-# epsilon=mu=1, c=1/sqrt(epsilon*mu). No conversion to seconds or nanoseconds.
+# Normalized length and time. Edit epsilon(x,y,z) and mu(x,y,z) below.
+# Local wave speed c=1/sqrt(epsilon*mu). No conversion to seconds or nanoseconds.
 X_RANGE = (-1.0, 1.0)
 Y_RANGE = (-1.0, 1.0)
 Z_RANGE = (-1.0, 1.0)
-NX, NY, NZ = 100, 100, 100
-T_END = 10.0
+NX, NY, NZ = 120,120,120
+T_END = 1.5
 CFL = 0.7                   # Stability fraction: 0 < CFL <= 1.
+
+REFERENCE_HALF_WIDTH = 1.5 # the reference run uses a larger box to avoid reflections from the PEC walls. BIGGER BOX
+
+
+
+
 
 # PML occupies these outer cells INSIDE the box; the outer wall stays PEC.
 # Keep the current source inside [min+PML_CELLS*d, max-PML_CELLS*d].
-USE_PML = True              # False reproduces the original PEC-only solver.
-PML_length = 0.3               # Physical length of the PML layer.
+USE_PML =True             # False reproduces the original PEC-only solver.
+PML_length = 0.4             # Physical length of the PML layer.
 PML_CELLS = pml_length_to_cells(PML_length, (X_RANGE, Y_RANGE, Z_RANGE), (NX, NY, NZ))
 PML_ORDER = 3               # m in sigma(l) = sigma_max * (l/L)**m.
-PML_TARGET_REFLECTION = 1e-6 # Theoretical normal-incidence amplitude ratio.
+PML_TARGET_REFLECTION = 1e-10 # Theoretical normal-incidence amplitude ratio.
 PML_SIGMA_MAX = None        # Optional normalized scalar or (x,y,z) override.
 # None uses sigma_max = -(m+1)*ln(R0)/(2*eta*L), eta=sqrt(mu/epsilon).
-# Sources extending into PML (e.g. the box-spanning DC wire) are not a
-# source-free absorbing-layer setup. PML does not remove static charge fields.
+# Keep the custom source outside the absorbing layers. PML does not remove static charge fields.
 
 # Output settings.
-PLOT_FIELD = "E"             # "E": electric field; "H": magnetic field.
+
 FRAME_EVERY = 1              # Record every this many steps.
 GIF_FPS = 12                 # Playback speed; does not affect the solution.
 
-USE_CUSTOM_CURRENT = True  # True: use only custom_current below.
-
-# DIY source settings.
-CUSTOM_AMPLITUDE =1.0        # Normalized current-density coefficient.
+# DIY source settings.!!
+CUSTOM_AMPLITUDE = 1.0        # Normalized current-density coefficient.
 CUSTOM_CENTER = (0.0, 0.0, 0.0)
-CUSTOM_RADIUS = 0.25          # Compact spatial support radius.
-CUSTOM_DURATION = 6.0        # Current is zero outside [0, duration].
-CUSTOM_DIRECTION = (1, -0.5, 1)  # Normalized in custom_current.
+CUSTOM_RADIUS = 0.05          # Compact spatial support radius.
+CUSTOM_DURATION = 1.0        # Current is zero outside [0, duration].
+CUSTOM_DIRECTION = (1, 0, 1)  # Normalized in custom_current.
 CUSTOM_FREQUENCY = 0.5       # Cycles per normalized time unit.
 
-# DC wire along z, through the box; its current is independent of z.
-DC_CURRENT = 100.0           # Normalized total current; 0 disables the wire.
-DC_WIRE_XY = (0.0, 0.0)      # Wire axis coordinates (x, y).
-DC_WIRE_WIDTH = 0.04         # Gaussian cross-section standard deviation.
-DC_RAMP = 1.0                # Smooth turn-on duration.
-
-# Optional Gaussian pulse (used when USE_CUSTOM_CURRENT=False).
-J_AMPLITUDE = 10.0            # Current-density coefficient.
-SOURCE_CENTER = (0.0, 0.0, 0.0)  # Pulse center.
-SOURCE_WIDTH = 0.1          # Spatial Gaussian standard deviation.
-SOURCE_RADIUS = 0.3         # Cutoff radius; None means no cutoff.
-FREQUENCY = 0.5             # Frequency parameter in sin and cos.
-PEAK_TIME = 2.0             # Time-envelope center.
-PULSE_WIDTH = 0.5           # Time-envelope width parameter.
+# ===== 2. Material functions =====
+SPHERE_CENTER = (0.0, 0.0, 0.0)
+SPHERE_RADIUS = 0.15
+SPHERE_EPSILON = 6
+DEFAULT_EPSILON = 1.0
 
 
-# ===== 2. Current equations =====
-def current_density(x, y, z, t , dc = False, sym = False):
-    """Select the DIY current or add the example pulse and wire currents.
+def epsilon(x, y, z , default = False):
+    """Positive, real permittivity; x,y,z are broadcastable coordinates.
 
-    Inputs: x,y,z are scalars or broadcastable NumPy arrays; t is normalized time.
-    Returns: (Jx,Jy,Jz), each scalar or broadcastable to xyz.
-    Default equation: J = (0, 0, J_pulse + J_wire).
-    With USE_CUSTOM_CURRENT=True: J = custom_current(x,y,z,t) instead.
-    Reads the source parameters above; does not change input arrays.
+    Evaluated once at Ex/Ey/Ez locations. Keep the PML and its interface
+    in one homogeneous background. Example dielectric sphere:
+        return np.where(x*x + y*y + z*z < 0.1**2, 4.0, 1.0)
     """
-    if USE_CUSTOM_CURRENT:
-        return custom_current(x, y, z, t)
-
-    x0, y0, z0 = SOURCE_CENTER
-    if sym:
-        r = np.sqrt((x - x0)**2 + (y - y0)**2 + (z - z0)**2)
-        r_safe = np.where(r > 0, r, 1.0)        # avoid 0/0 at the center
-        p = pulse_current(x, y, z, t)           # g(r) f(t)
-        Jx = p * np.where(r > 0, (x - x0) / r_safe, 0.0)
-        Jy = p * np.where(r > 0, (y - y0) / r_safe, 0.0)
-        Jz = p * np.where(r > 0, (z - z0) / r_safe, 0.0)
-    else:
-
-        Jx = 0
-        Jy = 0
-        Jz = pulse_current(x, y, z, t) + dc_wire_current(x, y, t) if dc else pulse_current(x, y, z, t)
-        
-    
-    
-    return Jx, Jy, Jz
+    if default:
+        return DEFAULT_EPSILON
+    xb, yb, zb = SPHERE_CENTER
+    r_squared = (x - xb)**2 + (y - yb)**2 + (z - zb)**2
+    return np.where(r_squared < SPHERE_RADIUS**2,
+                        SPHERE_EPSILON, 1.0)
 
 
-# ===== DIY: edit this function, then set USE_CUSTOM_CURRENT=True =====
+def mu(x, y, z):
+    """Positive, real permeability, evaluated once at Hx/Hy/Hz locations.
+
+    Spatial variation is allowed inside the physical domain; the PML
+    and its interface must have one constant background value.
+    """
+    return 1.0
+
+
+# ===== 3. Custom current =====
 def custom_current(x, y, z, t):
     """Build a localized current from a shape, waveform, and direction.
 
@@ -134,7 +122,7 @@ def custom_current(x, y, z, t):
 
     Mathematical expression (r = distance from center):
         S(r) = max(1 - r^2 / R^2, 0)^2
-        A(t) = sin(pi*t/T)^2 * sin(2*pi*f*t)  for 0 < t < T; otherwise 0
+        A(t) = sin(pi*t/T) * sin(2*pi*t/T) * sin(2*pi*f*t)  for 0 < t < T; otherwise 0
         d_hat = direction / sqrt(d_x^2 + d_y^2 + d_z^2)
         J(x,y,z,t) = J0 * S(r) * A(t) * d_hat
     Direction is automatically normalized; e.g. (1,1,0) gives (1,1,0)/sqrt(2).
@@ -153,7 +141,7 @@ def custom_current(x, y, z, t):
     if radius <= 0 or duration <= 0:
         raise ValueError("DIY radius and duration must be positive.")
 
-    
+
     ## just normalize the direction vector to avoid overflow for large weights
     # Unit direction: d_hat = d / |d|. Strength is controlled by amplitude.
     direction = np.asarray(direction, dtype=float)
@@ -172,10 +160,10 @@ def custom_current(x, y, z, t):
     # Alternative: uniform inside the same sphere (a sharp boundary).
     # spatial = np.where(r_squared <= radius**2, 1.0, 0.0)
 
-    
-    # 3. Time waveform: sin^2(pi*t/T) * sin(2*pi*f*t).
+
+    # 3. Time waveform: sin(pi*t/T) * sin(2*pi*t/T) * sin(2*pi*f*t).
     if 0 < t < duration:
-        window = np.sin(np.pi * t / duration)**2
+        window = np.sin(np.pi * t / duration)*np.sin(2*np.pi * t / duration) # smooth turn-on and turn-off
         phase = 2 * np.pi * CUSTOM_FREQUENCY * t
         waveform = window * np.sin(phase)
     else:
@@ -189,74 +177,12 @@ def custom_current(x, y, z, t):
     return Jx, Jy, Jz
 
 
-def pulse_current(x, y, z, t):
-    """Compute amplitude * spatial Gaussian * time envelope * oscillation.
-
-    Inputs: x,y,z are scalars or broadcastable arrays; t is normalized time.
-    Returns: pulse Jz, a scalar or array of the broadcast xyz shape.
-    Uses the pulse parameters above, including the optional spherical cutoff.
-
-    Mathematical expression:
-        r^2 = (x-x0)^2 + (y-y0)^2 + (z-z0)^2
-        phi = 2*pi*FREQUENCY*t
-        J_pulse = J0 * exp(-r^2/(2*sigma^2))
-                    * exp(-((t-t_peak)/tau)^2) * sin(phi)*cos(phi) * C(r)
-    J0=J_AMPLITUDE, sigma=SOURCE_WIDTH, center=SOURCE_CENTER,
-    t_peak=PEAK_TIME, tau=PULSE_WIDTH.
-    C(r)=1 everywhere if SOURCE_RADIUS=None; otherwise 1 for r<=SOURCE_RADIUS
-    and 0 outside. sin(phi)*cos(phi)=sin(2*phi)/2 doubles the frequency.
-    """
-    x0, y0, z0 = SOURCE_CENTER
-    r_squared = (x - x0)**2 + (y - y0)**2 + (z - z0)**2
-    spatial = np.exp(-r_squared / (2 * SOURCE_WIDTH**2))
-    if SOURCE_RADIUS is not None:
-        if not np.isfinite(SOURCE_RADIUS) or SOURCE_RADIUS <= 0:
-            raise ValueError("SOURCE_RADIUS must be None or a positive radius.")
-        spatial = np.where(r_squared <= SOURCE_RADIUS**2, spatial, 0.0)
-
-    envelope = np.exp(-((t - PEAK_TIME) / PULSE_WIDTH)**2)
-    phase = 2 * np.pi * FREQUENCY * t
-    oscillation = np.sin(phase) * np.cos(phase)
-    return J_AMPLITUDE * spatial * envelope * oscillation
-
-
-def dc_wire_current(x, y, t):
-    """Compute a Gaussian wire profile with a smooth turn-on, then constant DC.
-
-    Inputs: x,y are scalars or broadcastable arrays; t is normalized time.
-    Returns: wire Jz, with the broadcast xy shape, or 0.0 if disabled.
-    Uses DC_* parameters above. The profile integrates to DC_CURRENT over
-    the infinite xy plane after turn-on; a finite sampled box is approximate.
-
-    Mathematical expression, for simulation times t >= 0:
-        r_perp^2 = (x-x0)^2 + (y-y0)^2
-        J_wire = I/(2*pi*w^2) * exp(-r_perp^2/(2*w^2)) * R(t)
-        R(t) = sin(pi*t/(2*tau))^2  for tau>0 and 0<=t<tau
-               1                  otherwise
-    I=DC_CURRENT, w=DC_WIRE_WIDTH, (x0,y0)=DC_WIRE_XY,
-    tau=DC_RAMP. This source is independent of z.
-    Gaussian describes the prescribed current profile, not wire material.
-    """
-    if DC_CURRENT == 0:
-        return 0.0
-    x0, y0 = DC_WIRE_XY
-    rho_squared = (x - x0)**2 + (y - y0)**2
-    gaussian = np.exp(-rho_squared / (2 * DC_WIRE_WIDTH**2))
-    profile = gaussian / (2 * np.pi * DC_WIRE_WIDTH**2)
-
-    if DC_RAMP > 0 and t < DC_RAMP:
-        ramp = np.sin(0.5 * np.pi * t / DC_RAMP)**2
-    else:
-        ramp = 1.0
-    return DC_CURRENT * profile * ramp
-
-
-# ===== 3. Shared setup, run, and export =====
+# ===== 4. Shared setup, run, and export =====
 def get_simulation_settings():
     """Return current solve keyword arguments for both run and analysis.
 
     Includes bounds, cells, end_time, CFL, active current callable,
-    frame stride, material constants, and PML parameters. Reads the module
+    frame stride, material functions, and PML parameters. Reads the module
     settings at call time; does not solve, draw, or change any settings.
     """
     return dict(
@@ -264,10 +190,10 @@ def get_simulation_settings():
         cells=(NX, NY, NZ),
         end_time=T_END,
         cfl=CFL,
-        current_density=custom_current if USE_CUSTOM_CURRENT else current_density,
+        current_density=custom_current,
         frame_every=FRAME_EVERY,
-        epsilon=yee_solver.EPSILON0,
-        mu=yee_solver.MU0,
+        epsilon=epsilon,
+        mu=mu,
         pml_cells=PML_CELLS if USE_PML else 0,
         pml_order=PML_ORDER,
         pml_reflection=PML_TARGET_REFLECTION,
@@ -276,17 +202,12 @@ def get_simulation_settings():
 
 
 def get_source_bounds():
-    """Return the active run source's enclosing (3,2) box.
+    """Return the custom source's enclosing (3,2) box.
 
-    Uses CUSTOM_CENTER/RADIUS for the DIY source, or SOURCE_CENTER/RADIUS
-    for the default pulse (the run uses dc=False). An untruncated Gaussian
-    has no finite support and cannot provide a reflection-free time bound.
-    Keep this geometry consistent if replacing the spatial source equation.
+    Keep CUSTOM_CENTER/RADIUS consistent with custom_current's support.
     """
-    center = CUSTOM_CENTER if USE_CUSTOM_CURRENT else SOURCE_CENTER
-    radius = CUSTOM_RADIUS if USE_CUSTOM_CURRENT else SOURCE_RADIUS
-    if radius is None:
-        raise ValueError("The active pulse has no finite support; set SOURCE_RADIUS in fdtd_3d.py.")
+    center = CUSTOM_CENTER
+    radius = CUSTOM_RADIUS
     if np.ndim(radius) != 0 or not np.isfinite(radius) or radius <= 0:
         raise ValueError("The active source radius in fdtd_3d.py must be positive and finite.")
     center = np.asarray(center, dtype=float)
@@ -296,32 +217,34 @@ def get_source_bounds():
 
 
 def main(output_dir=None):
-    """Run this example using the module parameters and export both plots.
+    """Solve once and save separate E/H PNGs and GIFs.
 
-    Input: output_dir is a str/Path, or None for src/outputs.
-    Returns: (result, paths); result is the solve dict, paths is the
-        save_results dict {'png': Path, 'gif': Path}.
-    Creates/replaces the two plot files and prints a short run summary.
+    output_dir defaults to src/outputs. Returns (result, paths), where
+    paths["E"] and paths["H"] each contain "png" and "gif" paths.
+    Both fields use the same sampled times, already aligned by the solver.
     """
-    frames = []
+    frames = {"E": [], "H": []}
 
     def record_frame(time, electric, centers, magnetic):
-        """Copy the selected E/H field into the local frame list.
+        """Sample both fields from this timestep; no second simulation."""
+        frames["E"].append(sample_fields(time, electric, centers, "E"))
+        frames["H"].append(sample_fields(time, magnetic, centers, "H"))
 
-        Inputs: time; electric and magnetic are Yee field tuples;
-                centers=(xc,yc,zc) contains 1D coordinate arrays.
-        Returns: None. Appends a sample_fields dict; inputs are unchanged.
-        """
-        if PLOT_FIELD == "E":
-            field = electric
-        else:
-            field = magnetic
-        frames.append(sample_fields(time, field, centers, PLOT_FIELD))
-
-    result = solve(**get_simulation_settings(), on_frame=record_frame)
+    result = timed_solve("FDTD", **get_simulation_settings(), on_frame=record_frame)
     if output_dir is None:
         output_dir = Path(__file__).resolve().parents[1] / "outputs"
-    paths = save_results(result, frames, output_dir, fps=GIF_FPS, kind=PLOT_FIELD)
+    paths = {}
+    plot_seconds = 0.0
+    for kind in ("E", "H"):
+        paths[kind], seconds = timed_call(
+            f"{kind} PNG/GIF export", save_results, result, frames[kind], output_dir,
+            fps=GIF_FPS, kind=kind,
+            on_progress=lambda done, total: print_progress(done, total, f"{kind} GIF frames"),
+        )
+        plot_seconds += seconds
+        frames[kind].clear()  # Release sampled frames after this field is exported.
+    result["performance"]["plot_seconds"] = plot_seconds
+    print(f"Solve + export total: {result['performance']['wall_seconds'] + plot_seconds:.3f} s")
     print(f"Grid: {NX} x {NY} x {NZ}; steps: {result['steps']}")
     print(f"Normalized dx,dy,dz: {result['spacing']}; dt: {result['dt']:.6g}")
     if USE_PML:
@@ -329,7 +252,8 @@ def main(output_dir=None):
         print(f"Normalized PML sigma_max (x,y,z): {result['pml']['sigma_max']}")
     else:
         print("PEC-only reflecting walls")
-    print(f"Updated PNG and GIF in: {output_dir}")
+    for kind in ("E", "H"):
+        print(f"Saved {kind}: {paths[kind]['png']} and {paths[kind]['gif']}")
     return result, paths
 
 

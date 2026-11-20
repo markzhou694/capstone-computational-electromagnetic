@@ -76,3 +76,46 @@ Duplicated FDTD documentation and old tests were removed from this subtree
 during the earlier layout change. Their prior versions remain in Git
 history and in a local backup outside the repository. The original sibling
 `capstone_code/` is separate and does not automatically synchronize here.
+
+### Timing, progress and operation counts
+
+`fdtd/run_metrics.py` contains editable `print_progress`, `timed_call`,
+`estimate_fdtd_flops` and `timed_solve` functions. Both entry points report
+solver wall time and estimated core arithmetic; ordinary PNG/GIF export is
+timed separately, with GIF frame progress. Analysis reports each domain and
+the combined pair; error plotting is timed separately. Solver result metadata
+contains `performance.wall_seconds` and `performance.estimated_core_flops`.
+Wall time includes initialization, source and frame callbacks (including
+sampling, temporary I/O and error comparison); this is not pure kernel timing.
+FLOPs count core array arithmetic and H output alignment only. They exclude
+source evaluation, setup, plotting and I/O; the formula and conventions are
+in the function docstring. These are estimates, not hardware counter readings.
+Compare time/grid/step settings alongside these totals when comparing runs.
+
+### Spatial materials
+
+Edit `epsilon(x, y, z)` and `mu(x, y, z)` in `fdtd/fdtd_3d.py`; both default
+to 1. They accept broadcastable coordinates and return positive real scalar
+or broadcastable array values. The solver samples them once on the respective
+E-edge and H-face grids. PML and its interfaces must stay homogeneous.
+`custom_current` is now the only example source; pulse/wire alternatives and
+`USE_CUSTOM_CURRENT` were removed. The existing `err_analysis.py` timing remains
+homogeneous-only and rejects nonuniform materials.
+
+Run material checks from the repository root:
+`python -B -m unittest discover -s src/tests -p 'test_material_functions.py'`.
+
+## Dielectric bunny example
+
+Run `python src/fdtd/fdtd_3d_complex_geometric.py` from the repository root.
+Install `trimesh` and `rtree` in the same Python environment first.
+Grid/time/PML/custom current are read from fdtd_3d.py; its sphere material
+is replaced only for this run. Edit BUNNY_CENTER, BUNNY_SIZE and BUNNY_EPSILON
+in the new file. Background epsilon=mu=1; default bunny epsilon=4.
+The included closed mesh is sampled directly at native electric locations,
+using binary inside/outside masks (staircase geometry, no subpixel averaging).
+The source stays outside the bunny and both remain inside the physical box.
+Outputs go to src/outputs/bunny: geometry preview and separate E/H PNG/GIFs.
+The smooth geometry preview shows the input mesh, not the discretized material.
+The solver is unchanged; coarse-grid ears and interface fields require
+resolution checks before quantitative scattering claims.

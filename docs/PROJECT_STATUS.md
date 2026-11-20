@@ -2,6 +2,132 @@
 
 Last reviewed: **2026-11-14**. Humans: **Xiaodi Zhou and Guanlin Wang**.
 
+## Bunny field overlays — 2026-11-20
+
+E/H exports now show a translucent bunny in 3D and gold mesh cross-section
+outlines on slices through its bounding-box center. Bunny views focus on the
+physical domain. These are continuous mesh overlays; Yee material remains
+staircase sampled. Verified a 40^3, 40-step run and E/H PNG/GIF exports in a
+temporary directory; rerun the bunny entry point to refresh full-size outputs.
+
+## Optional dielectric bunny — 2026-11-20
+
+fdtd_3d_complex_geometric.py reuses shared grid/PML/source settings and the
+unchanged solver, replacing the medium with a closed bunny (epsilon=4) in
+background epsilon=mu=1. Native E-grid inside/outside masks; no smoothing.
+One-cell clearance and external-source placement checks are enforced.
+plot_fields.py exports a mesh/source preview; E/H outputs use a separate bunny
+folder. Dependencies trimesh 5.2.1 and rtree 1.4.1 installed in sci.
+Verified box classification, 40^3 eight-step E/H run and four image exports,
+PML placement rejection, and four existing material tests. Not a convergence
+study; full configured 90^3 simulation has not been run.
+
+## Both E and H visualization — 2026-11-20
+
+The ordinary fdtd_3d.py run now solves once and exports separate E/H PNGs
+and GIFs through plot_fields.py, using the same time-aligned snapshots.
+Output names are fdtd_3d_E.png/.gif and fdtd_3d_H.png/.gif in src/outputs.
+A 12^3 two-step test produced four readable artifacts, including two
+three-frame GIFs. Current large-run parameters and old outputs were preserved.
+
+## Spatial material functions and custom source only — 2026-11-20
+
+fdtd_3d.py now defines epsilon(x,y,z) and mu(x,y,z), both returning 1 by
+default, and retains only custom_current as a source model. The solver samples
+epsilon on E edges and mu on H faces once, uses local materials in PEC/PML
+updates and H output alignment, and bounds CFL using separate material minima.
+PML layers/interfaces must be homogeneous. Returned epsilon/mu retain the input
+scalars/callables; epsilon_fields/mu_fields hold the sampled arrays.
+The existing reflection-time analysis reads these functions but explicitly
+rejects nonuniform media because its timing model is homogeneous-only.
+Four material tests passed, including local update, Gauss laws, scalar/callable
+equivalence and validation. Small ordinary export and analysis runs passed.
+No bunny, integral representation, or full configured run was added.
+
+## Sphere field extraction — 2026-11-20
+
+For Xiaodi, field_extraction.py now generates a source-centered sphere strictly
+inside the physical domain and samples each native Yee component using trilinear
+interpolation. Default 16x32 rings plus two poles give 514 unique samples.
+extract_sphere(result) returns one time-aligned E/H snapshot and geometry;
+running the file only saves a geometry preview via plot_fields.py.
+Analytic multilinear interpolation and a small PML-solver integration check passed.
+Time histories and surface quadrature are not yet implemented.
+
+## Error/reference norm plot — 2026-11-19
+
+Added a separate dark-background logarithmic figure, pml_error_norms.png,
+with E/H panels showing absolute discrete L2 differences and reference norms.
+err_analysis.main saves it automatically alongside the existing error plot/CSV.
+Rendered and visually checked using the existing 356-sample CSV; no solver rerun.
+Current saved analysis uses safety=50*dt; the older three-step entry below is historical.
+
+## PML norm CSV columns — 2026-11-19
+
+Analysis now appends pml_L2_E and pml_L2_H, the PML field norms over the
+shared physical region, alongside the reference norms. Peak-normalized errors
+are unchanged. Small-run CSV checks passed; existing full-run CSV is preserved
+and receives the new columns on the next analysis run.
+
+## Safety reserve — 2026-11-19
+
+At Xiaodi's request, analysis now requires T_end + 3*dt < t_return.
+The total three-step margin includes the forward H half-step. Timing-only
+checks passed; existing plots have not been regenerated for this change.
+
+## Timing and progress — 2026-11-18
+
+For Xiaodi, run_metrics.py provides editable timing, progress and core FLOP
+estimation functions. Both entry points now report each solve; GIF export has
+separate frame progress/timing and analysis reports the paired total. Counts
+are formula-based core arithmetic estimates, not hardware measurements.
+Small PEC/PML runs retained bitwise-identical E/H with instrumentation;
+hand-count FLOP checks and a real two-frame PNG/GIF export passed.
+Full current-grid timing was not run; no performance speedup is claimed.
+
+## Peak-normalized errors — 2026-11-18
+
+At Xiaodi's request, E/H differences are now divided by the maximum respective
+reference norm over the sampled observation interval. Equations are beside
+the calculation in err_analysis.py. CSV retains absolute and reference norms;
+plot_fields.py labels the curve Peak-normalized L2 error. An entirely zero
+reference gives NaN. Small nonzero/zero-source checks passed. Replotted the
+previously measured 80^3/160^3 diagnostic data (no full rerun): peak normalized
+E/H errors are 6.04379e-6 / 6.52354e-6. Earlier instantaneous-relative plots
+and their metrics are superseded by this definition.
+
+## Relative error over time — 2026-11-18
+
+For Xiaodi, err_analysis.py now runs both domains from t=0 and computes
+relative discrete L2 errors for E/H at every step in the observation interval.
+Native Yee components are cropped to the shared physical domain without
+averaging. Temporary PML samples are deleted as reference samples are compared.
+Zero reference norms give NaN (undefined), not an invented denominator.
+main saves pml_error_history.png and .csv in src/outputs; plotting remains in
+plot_fields.py. It no longer calls the final-field comparison plot.
+The configured 50^3/76^3 run completed over observation [0.436477,2.08539],
+with actual PML thickness 0.32, B=1.52 and b=0.68. This is boundary sensitivity
+relative to one reference, not a convergence or strict no-contamination proof.
+
+## Separate analysis entry point — 2026-11-18
+
+Xiaodi requested English comments and a simpler run workflow. run_simulations
+now has English annotations. Set shared parameters and REFERENCE_HALF_WIDTH
+in fdtd_3d.py, then run src/fdtd/err_analysis.py directly. Its main derives dt
+from CFL and runs only the PML/reference pair, with no ordinary run or GIF
+export. It now saves one final native-Ez comparison PNG through plot_fields.py. Analysis T_end remains reference-bound-driven, not fdtd_3d.T_END.
+Final fields are returned; time histories and errors are still pending.
+The script entry point passed a small 12^3/18^3 custom-current check.
+
+## Length-based PML paired runs — 2026-11-18
+
+For Xiaodi, err_analysis.py now recomputes PML cells from fdtd_3d.PML_length.
+run_simulations(B, dt) runs PML and reference to a common safe final time,
+returning both results and the observation interval. Actual rounded PML
+thickness determines the physical region. Small custom-current and zero-source
+checks passed; full configured runs were not performed. This step stores only
+final fields; time-history sampling and relative E/H errors are the next step.
+
 ## Dark slice style — 2026-11-14
 
 Restored black zero-field slice backgrounds, with blue negative and orange

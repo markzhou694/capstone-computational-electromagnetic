@@ -154,6 +154,42 @@ def _pml_coefficients(coordinates, physical_bounds, thickness, sigma_max,
     return tuple(coefficients)
 
 
+def sample_material(material, coordinates, name):
+    """Evaluate a scalar or material(x,y,z) once on three Yee component grids.
+
+    Returns three positive finite real arrays, broadcast to component shapes.
+    Materials are stationary, isotropic and nondispersive.
+    """
+    samples = []
+    for xyz in coordinates:
+        value = material(*xyz) if callable(material) else material
+        if np.iscomplexobj(value):
+            raise ValueError(f"{name} must be real-valued.")
+        value = np.asarray(value, dtype=float)
+        shape = np.broadcast_shapes(*(q.shape for q in xyz))
+        try:
+            value = np.broadcast_to(value, shape).copy()
+        except ValueError as error:
+            raise ValueError(f"{name} must broadcast to {shape}.") from error
+        if not np.isfinite(value).all() or np.any(value <= 0):
+            raise ValueError(f"{name} must be positive and finite.")
+        samples.append(value)
+    return tuple(samples)
+
+
+def pml_background(materials, coordinates, physical_bounds, name):
+    """Require one constant material in all PML layers and at their interfaces."""
+    background = float(materials[0].flat[0])
+    for values, xyz in zip(materials, coordinates):
+        in_pml = np.zeros(values.shape, dtype=bool)
+        for axis, coordinate in enumerate(xyz):
+            low, high = physical_bounds[axis]
+            in_pml |= (coordinate <= low) | (coordinate >= high)
+        if not np.allclose(values[in_pml], background, rtol=1e-12, atol=0):
+            raise ValueError(f"{name} must be constant throughout PML and its interfaces.")
+    return background
+
+
 def _pml_step(field, auxiliary, drive, coefficients, dt, material):
     """Advance B->H or D->E by Jin (8.5.78)-(8.5.83); no input mutation.
 
@@ -162,6 +198,7 @@ def _pml_step(field, auxiliary, drive, coefficients, dt, material):
     Auxiliary and physical components share array shapes and locations.
     (p,q,r) cycles through (x,y,z), (y,z,x), (z,x,y).
     """
+    materials = material if isinstance(material, tuple) else (material,) * 3
     new_auxiliary, new_field = [], []
     for p in range(3):
         q, r = (p + 1) % 3, (p + 2) % 3
@@ -170,7 +207,7 @@ def _pml_step(field, auxiliary, drive, coefficients, dt, material):
         a_r, b_r = coefficients[p][r]
         auxiliary_new = (a_q * auxiliary[p] + dt * drive[p]) / b_q
         field_new = (a_r * field[p]
-                     + (b_p * auxiliary_new - a_p * auxiliary[p]) / material) / b_r
+                     + (b_p * auxiliary_new - a_p * auxiliary[p]) / materials[p]) / b_r
         new_auxiliary.append(auxiliary_new)
         new_field.append(field_new)
     return tuple(new_auxiliary), tuple(new_field)
@@ -181,7 +218,7 @@ def magnetic_at_e_time(electric, magnetic, spacing, dt, mu=MU0, *,
     """Align staggered H with the time of E for output only.
 
     Inputs: electric at t, magnetic at t-dt/2, using E/H shapes;
-            spacing=(dx,dy,dz), dt, permeability mu.
+            spacing=(dx,dy,dz), dt, mu as a scalar or three H-grid arrays.
     Returns: (Hx,Hy,Hz) at t, new H-shaped arrays.
     Uses H(t) = H(t-dt/2) - dt/(2*mu)*curl(E(t)); inputs are unchanged.
     For PML, supply auxiliary B at t-dt/2 and full-dt H-grid coefficients.
@@ -195,17 +232,18 @@ def magnetic_at_e_time(electric, magnetic, spacing, dt, mu=MU0, *,
         drive = tuple(-value for value in curl)
         _, next_h = _pml_step(magnetic, pml_b, drive, pml_coefficients, dt, mu)
         return tuple((old + new) / 2 for old, new in zip(magnetic, next_h))
+    materials = mu if isinstance(mu, tuple) else (mu,) * 3
     aligned = []
     for component in range(3):
-        aligned.append(magnetic[component] - dt / (2 * mu) * curl[component])
+        aligned.append(magnetic[component] - dt / (2 * materials[component]) * curl[component])
     return tuple(aligned)
 
 
 def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
           on_frame=None, frame_every=1, *, epsilon=EPSILON0, mu=MU0,
           pml_cells=0, pml_order=3, pml_reflection=1e-6, pml_sigma_max=None,
-          time_steps=None):
-    """Solve 3D Maxwell equations from E=H=rho=0 in a uniform medium.
+          time_steps=None, on_progress=None):
+    """Solve 3D Maxwell equations from E=H=rho=0 in a stationary isotropic medium.
 
     Inputs
     ------
@@ -226,14 +264,18 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         Function (time,electric,centers,magnetic) -> None. Both fields are
         aligned to time. Called at t=0, every frame_every steps, and T.
         Do not modify its arrays; copy data that must survive the callback.
+    on_progress : callable or None, keyword-only
+        Receives (completed_steps, total_steps), initially and after each update.
     frame_every : positive integer, default 1
         Output stride; has no effect on the calculated fields.
     time_steps : None or positive integer, keyword-only
         Fix the number of updates, giving dt=end_time/time_steps. Useful for
         domain comparisons with identical times. Must satisfy the requested
         cfl limit. None retains the original automatic step calculation.
-    epsilon, mu : positive finite scalars, keyword-only
-        Uniform permittivity and permeability; both default to 1.
+    epsilon, mu : positive scalars or callables (x,y,z), keyword-only
+        Stationary isotropic materials. Callables accept broadcast coordinates
+        and return positive finite real values. Sampled once on E/H grids.
+        PML and its interfaces must be homogeneous in both materials.
     pml_cells : nonnegative integer, default 0 (original PEC-only solver)
         PML cell count on EACH of the six sides, INSIDE bounds; requires
         2*pml_cells < min(cells). Bounds, spacing and array shapes stay fixed.
@@ -259,7 +301,9 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         nodes: (x,y,z) arrays of lengths Nx+1,Ny+1,Nz+1.
         centers: (xc,yc,zc) arrays of lengths Nx,Ny,Nz.
         spacing: float array (3,); time,dt: floats; steps: int.
-        cfl: actual dt/dt_limit; epsilon,mu: the medium parameters.
+        cfl: actual dt/dt_limit; epsilon,mu: original scalar/callable inputs.
+        epsilon_fields,mu_fields: three arrays on E/H grids respectively.
+        wave_speed_bound: 1/sqrt(min(epsilon_fields)*min(mu_fields)).
         With PML only, also physical_bounds: (3,2) undamped interior,
         and pml: dict with cells, order, thickness, sigma_max,
         and theoretical_reflection (three normal-incidence amplitudes).
@@ -269,8 +313,8 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     -----
     Jin (2010), Sec. 8.5.3: auxiliary B,H,D,E PML, terminated by PEC.
     D and B are auxiliary fields, not simply epsilon*E and mu*H in PML.
-    The original CFL limit is retained. No material map or nonuniform mesh.
-    charge always integrates -div(J); epsilon*div(E)=charge applies only
+    CFL uses a conservative speed bound; the spatial mesh remains uniform.
+    charge integrates -div(J); div(epsilon*E)=charge applies only
     where the entire divergence stencil lies in the undamped interior.
     Static/evanescent fields are not well absorbed by this conventional PML.
     No plotting or file writes. Invalid settings raise ValueError.
@@ -294,8 +338,9 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     ):
         raise ValueError("time_steps must be None or a positive integer.")
     for name, value in (("epsilon", epsilon), ("mu", mu)):
-        if np.ndim(value) != 0 or not np.isfinite(value) or value <= 0:
-            raise ValueError(f"{name} must be a positive finite scalar.")
+        if not callable(value) and (np.ndim(value) != 0 or np.iscomplexobj(value)
+                                    or not np.isfinite(value) or value <= 0):
+            raise ValueError(f"{name} must be a positive finite scalar or callable.")
     if current_density is not None and not callable(current_density):
         raise ValueError("current_density must be callable or None.")
     if on_frame is not None and not callable(on_frame):
@@ -328,6 +373,13 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         np.meshgrid(x, yc, z, indexing="ij", sparse=True),
         np.meshgrid(x, y, zc, indexing="ij", sparse=True),
     )
+    h_coordinates = (
+        np.meshgrid(x, yc, zc, indexing="ij", sparse=True),
+        np.meshgrid(xc, y, zc, indexing="ij", sparse=True),
+        np.meshgrid(xc, yc, z, indexing="ij", sparse=True),
+    )
+    epsilon_fields = sample_material(epsilon, e_coordinates, "epsilon")
+    mu_fields = sample_material(mu, h_coordinates, "mu")
     # Alternating E/H shapes are listed in the module docstring.
     ex = np.zeros((nx, ny + 1, nz + 1))
     ey = np.zeros((nx + 1, ny, nz + 1))
@@ -339,7 +391,10 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     magnetic = (hx, hy, hz)
     charge = np.zeros((nx - 1, ny - 1, nz - 1))
 
-    wave_speed = 1 / np.sqrt(epsilon * mu)
+    # Conservative bound: separate minima also cover staggered material samples.
+    epsilon_min = min(float(v.min()) for v in epsilon_fields)
+    mu_min = min(float(v.min()) for v in mu_fields)
+    wave_speed = 1 / np.sqrt(epsilon_min * mu_min)
     dt_limit = 1 / (wave_speed * np.sqrt(np.sum(1 / spacing**2)))
     steps = int(np.ceil(end_time / (cfl * dt_limit)))
     if time_steps is not None:
@@ -354,7 +409,9 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         # Use the interface nodes themselves to avoid coordinate roundoff.
         for axis in range(3):
             physical_bounds[axis] = (nodes[axis][pml_cells], nodes[axis][-pml_cells-1])
-        impedance = np.sqrt(mu / epsilon)
+        epsilon_background = pml_background(epsilon_fields, e_coordinates, physical_bounds, "epsilon")
+        mu_background = pml_background(mu_fields, h_coordinates, physical_bounds, "mu")
+        impedance = np.sqrt(mu_background / epsilon_background)
         sigma_max = -(pml_order + 1) * np.log(pml_reflection) / (2 * impedance * thickness)
         if pml_sigma_max is not None:
             sigma_max = np.asarray(pml_sigma_max, dtype=float)
@@ -362,15 +419,10 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
                 sigma_max = np.full(3, float(sigma_max))
             if sigma_max.shape != (3,) or not np.isfinite(sigma_max).all() or np.any(sigma_max < 0):
                 raise ValueError("pml_sigma_max must be nonnegative and finite, scalar or length 3.")
-        h_coordinates = (
-            np.meshgrid(x, yc, zc, indexing="ij", sparse=True),
-            np.meshgrid(xc, y, zc, indexing="ij", sparse=True),
-            np.meshgrid(xc, yc, z, indexing="ij", sparse=True),
-        )
         e_coefficients = _pml_coefficients(
-            e_coordinates, physical_bounds, thickness, sigma_max, pml_order, epsilon, dt)
+            e_coordinates, physical_bounds, thickness, sigma_max, pml_order, epsilon_background, dt)
         h_coefficients = _pml_coefficients(
-            h_coordinates, physical_bounds, thickness, sigma_max, pml_order, epsilon, dt)
+            h_coordinates, physical_bounds, thickness, sigma_max, pml_order, epsilon_background, dt)
         auxiliary_d = tuple(np.zeros_like(value) for value in electric)
         auxiliary_b = tuple(np.zeros_like(value) for value in magnetic)
         pml_info = dict(cells=pml_cells, order=pml_order, thickness=thickness,
@@ -379,18 +431,21 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
     if on_frame is not None:
         on_frame(0.0, electric, tuple(centers), magnetic)
 
+    if on_progress is not None:
+        on_progress(0, steps)
+
     # 2. Advance all six field components, then enforce the boundary condition.
     for n in range(steps):
         # H^(n+1/2) = H^(n-1/2) - dt/mu * curl(E^n)
         curl_x, curl_y, curl_z = curl_e(electric, spacing)
         if pml_cells:
             auxiliary_b, magnetic = _pml_step(
-                magnetic, auxiliary_b, (-curl_x, -curl_y, -curl_z), h_coefficients, dt, mu)
+                magnetic, auxiliary_b, (-curl_x, -curl_y, -curl_z), h_coefficients, dt, mu_fields)
             alignment = dict(pml_b=auxiliary_b, pml_coefficients=h_coefficients)
         else:
-            hx -= dt / mu * curl_x
-            hy -= dt / mu * curl_y
-            hz -= dt / mu * curl_z
+            hx -= dt / mu_fields[0] * curl_x
+            hy -= dt / mu_fields[1] * curl_y
+            hz -= dt / mu_fields[2] * curl_z
 
         current = sample_current(current_density, e_coordinates, (n + 0.5) * dt)
         jx, jy, jz = current
@@ -400,24 +455,26 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         if pml_cells:
             auxiliary_d, electric = _pml_step(
                 electric, auxiliary_d, (curl_x-jx, curl_y-jy, curl_z-jz),
-                e_coefficients, dt, epsilon)
+                e_coefficients, dt, epsilon_fields)
             apply_pec(auxiliary_d)
         else:
-            ex += dt / epsilon * (curl_x - jx)
-            ey += dt / epsilon * (curl_y - jy)
-            ez += dt / epsilon * (curl_z - jz)
+            ex += dt / epsilon_fields[0] * (curl_x - jx)
+            ey += dt / epsilon_fields[1] * (curl_y - jy)
+            ez += dt / epsilon_fields[2] * (curl_z - jz)
         apply_pec(electric)
         charge -= dt * divergence_e(current, spacing)
 
         record_step = (n + 1) % frame_every == 0 or n + 1 == steps
         if on_frame is not None and record_step:
-            aligned_h = magnetic_at_e_time(electric, magnetic, spacing, dt, mu, **alignment)
+            aligned_h = magnetic_at_e_time(electric, magnetic, spacing, dt, mu_fields, **alignment)
             on_frame((n + 1) * dt, electric, tuple(centers), aligned_h)
+        if on_progress is not None:
+            on_progress(n + 1, steps)
 
     # 3. Return fields at the same physical time, with grid and medium metadata.
     result = {
         "electric": electric,
-        "magnetic": magnetic_at_e_time(electric, magnetic, spacing, dt, mu, **alignment),
+        "magnetic": magnetic_at_e_time(electric, magnetic, spacing, dt, mu_fields, **alignment),
         "charge": charge,
         "bounds": bounds,
         "cells": tuple(cells),
@@ -430,6 +487,9 @@ def solve(bounds, cells, end_time, cfl=0.8, current_density=None,
         "cfl": dt / dt_limit,
         "epsilon": epsilon,
         "mu": mu,
+        "epsilon_fields": epsilon_fields,
+        "mu_fields": mu_fields,
+        "wave_speed_bound": wave_speed,
     }
     if pml_cells:
         result.update(physical_bounds=physical_bounds, pml=pml_info)
