@@ -403,6 +403,38 @@ def save_error_history(times, error_E, error_H, output_dir=None):
     return path
 
 
+def save_exterior_fields(exterior, output_dir=None):
+    """Save reconstructed Ex/Ey/Ez and Hx/Hy/Hz versus observation time.
+
+    exterior contains times (Nt,), electric/magnetic (Nt,3), and point (3,).
+    Plot the signed Cartesian components, not field magnitude or surface data.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    with plt.style.context("dark_background"):
+        fig, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True, layout="constrained")
+        for ax, key, label in zip(axes, ("electric", "magnetic"), ("E", "H")):
+            for component, (name, color) in enumerate(zip("xyz", ("#73cfff", "#ffb34d", "#9be391"))):
+                ax.plot(exterior["times"], exterior[key][:, component], color=color,
+                        linestyle=("-", "--", ":")[component], label=label+name)
+            ax.set_ylabel(label)
+            ax.legend(ncols=3)
+            ax.grid(alpha=0.2)
+            ax.ticklabel_format(axis="y", style="sci", scilimits=(-3, 3))
+        axes[-1].set_xlabel("t")
+        coordinates = ", ".join(f"{value:g}" for value in exterior["point"])
+        axes[0].set_title(f"Exterior field | ({coordinates})")
+        if output_dir is None:
+            output_dir = Path(__file__).resolve().parents[1] / "outputs" / "near_to_far_field"
+        path = Path(output_dir) / "near_to_far_field.png"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, dpi=180)
+        plt.close(fig)
+    return path
+
+
 def save_sphere_samples(sphere, output_dir=None):
     """Draw sphere sample positions, both poles, source support and physical box.
 

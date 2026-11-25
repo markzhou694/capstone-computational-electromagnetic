@@ -119,3 +119,64 @@ Outputs go to src/outputs/bunny: geometry preview and separate E/H PNG/GIFs.
 The smooth geometry preview shows the input mesh, not the discretized material.
 The solver is unchanged; coarse-grid ears and interface fields require
 resolution checks before quantitative scattering claims.
+
+## Direct time-domain near-to-far field
+
+Run `python src/fdtd/near-to-far-field.py`. It reads the saved grid, material,
+custom current, PML and T_END from fdtd_3d.py, runs FDTD once, and records
+only the sphere samples at every timestep. It does not run the ordinary
+field animations. Edit RADIUS, N_THETA, N_PHI and OBSERVATION_POINT at the
+top of the new file. None for RADIUS uses the existing source-centered
+sphere rule. H is already aligned in time by the solver; each Cartesian
+component is interpolated directly from its own native Yee locations.
+
+The calculation follows four explicit steps:
+
+1. Record `electric` and `magnetic`, each `(Nt,Ns,3)`, on the sphere.
+2. Assign latitude-patch areas
+   `w_ij = RADIUS**2 * dphi * (cos(i*dtheta)-cos((i+1)*dtheta))`.
+   They sum to the sphere area. The two extra pole samples have zero
+   integration weight because the patches already cover both caps.
+3. Construct `Js=n cross H`, `Ms=-n cross E`, and the equivalent charge
+   traces `rho=epsilon*n dot E`, `rho_m=mu*n dot H`.
+4. For each sphere point y, interpolate these data and their time derivatives
+   at `t-|x-y|/c`, where `c=1/sqrt(epsilon_background*mu_background)`.
+   Sum the full Maxwell kernels displayed in `reconstruct_fields`.
+
+The spacetime Green function is `delta(t-t'-r/c)/(4*pi*r)`. Its delta
+function has already performed the time integral; do not multiply the
+surface sum by dt. This is a direct integral of known fields, with no FFT,
+modal expansion or integral-equation solve. It retains finite-distance
+terms and can evaluate points outside the sphere, even beyond the FDTD box.
+
+The source and every material contrast must be strictly inside the sphere.
+The sphere and its interpolation stencils must stay in a homogeneous
+physical region before PML. Native material samples are checked in a collar
+one cell diagonal wide and throughout the grid exterior. The continuation
+outside the FDTD box must also be that same homogeneous, nondispersive
+background; grid checks cannot detect unresolved or external objects.
+Zero initial fields and no incoming waves are assumed. Reconstructed
+accuracy still depends on FDTD/PML, spatial interpolation, time sampling
+and surface quadrature. Close-to-surface observers require more points.
+
+The output folder is `src/outputs/near_to_far_field/`:
+
+- `surface_history.npz`: times `(Nt,)`, E/H `(Nt,Ns,3)`, points/normals
+  `(Ns,3)`, weights `(Ns,)`, geometry, exterior material constants and grid metadata.
+- `exterior_fields.npz`: times `(No,)`, electric/magnetic `(No,3)`, point
+  and background constants. The time is the observer's time, including travel.
+- `near_to_far_field.png`: signed Ex/Ey/Ez and Hx/Hy/Hz time traces.
+- `sphere_samples.png`: geometry and sampling locations.
+
+With `times=None`, the observation window is the recorded time interval
+shifted by `(distance(point,center)-RADIUS)/c`. Values before zero source
+time are zero; unknown future data are rejected. T_END controls the recorded
+history, so increase it for longer exterior waveforms. A saved surface
+history can be reused in `reconstruct_fields(surface, point, times=None)`
+for another exterior point without another FDTD simulation. The hyphenated
+filename is a runnable script; use importlib to load it as in the tests.
+
+Run the independent analytic dipole and small FDTD checks with
+`python -B -m unittest discover -s src/tests -p 'test_near_to_far_field.py' -v`.
+Tests cover area weights, angular/time refinement, nonunit backgrounds,
+causality, missing history, material containment and a direct FDTD probe.

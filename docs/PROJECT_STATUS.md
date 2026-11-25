@@ -1,6 +1,29 @@
 # Shared project status
 
-Last reviewed: **2026-11-14**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+Last reviewed: **2026-11-25**. Humans: **Xiaodi Zhou and Guanlin Wang**.
+
+## Near-to-far-field publication — 2026-11-25
+
+Owner: Xiaodi; actor: Codex. This change set adds the direct retarded
+latitude/longitude surface integrator, its exterior plotting function,
+eight numerical tests and run instructions. It records E/H histories from
+the existing Yee solver and reconstructs an exterior point without FFT
+or an unknown-current solve. Source/settings remain in fdtd_3d.py.
+
+Publication scope: src/fdtd/near-to-far-field.py, the save_exterior_fields
+addition in src/fdtd/plot_fields.py, src/tests/test_near_to_far_field.py,
+the relevant src/README.md section, and project status/timeline records.
+Other local spectrum, analysis, viewer and parameter edits are excluded.
+Generated PNG/NPZ outputs stay local. The current script observer is
+(2,5,10); the recorded November 24 production validation used (2,0,0).
+The published fdtd_3d settings stay at the existing repository values;
+the local 50^3/CFL=.9 edits are preserved without publication.
+
+The integrator requires a homogeneous exterior and sufficient time history.
+The November 24 analytic convergence and 150^3 validation are recorded in
+TIMELINE.md. All eight numerical tests passed again on the isolated, exact
+publication tree on November 25. Geometry/material preflight also passed
+with the existing repository defaults. This is not a new full-size run.
 
 ## Bunny field overlays — 2026-11-20
 
